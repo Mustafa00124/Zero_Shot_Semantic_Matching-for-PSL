@@ -1,0 +1,402 @@
+[
+  {
+    "word": "account",
+    "hands_used": "both",
+    "primary_hand": "none",
+    "two_hand_relation": "same-action",
+    "contact_presence": "none",
+    "body_region_primary": "chest",
+    "path_family": "push-pull",
+    "arm_motion": "static",
+    "hand_motion": "static",
+    "finger_motion": "static",
+    "head_motion": "none",
+    "overall_description": "Both hands, with index fingers extended, move forward and back from the chest. The motion is small and repeated, as if gently pushing something away and then pulling it back. The hands move in parallel.",
+    "movement_summary": "Both index fingers pulse forward and back, near the chest.",
+    "analogy_description": [
+      "Like gently pushing and releasing two small drawers. The two pointers move in a tiny push–pull."
+    ],
+    "visual_rationale": "The repeated push-pull motion of the index fingers is the most distinguishing cue.",
+    "video_file": "account.mp4"
+  },
+  {
+    "word": "active",
+    "hands_used": "both",
+    "primary_hand": "none",
+    "two_hand_relation": "same-action",
+    "contact_presence": "none",
+    "body_region_primary": "chest",
+    "path_family": "push-pull",
+    "arm_motion": "static",
+    "hand_motion": "static",
+    "finger_motion": "static",
+    "head_motion": "none",
+    "overall_description": "The sign is performed with both hands near the chest. The index fingers are extended, and the hands move forward and backward in a small, repeated pulsing motion. The hands move together in parallel.",
+    "movement_summary": "Both hands pulse forward and back near the chest, index fingers extended.",
+    "analogy_description": [
+      "Like gently pushing and releasing two small drawers. The two pointers move in a tiny push–pull."
+    ],
+    "visual_rationale": "The repeated push-pull motion of the index fingers is the most distinguishing cue.",
+    "video_file": "active.mp4"
+  },
+  {
+    "word": "ambulance",
+    "hands_used": "both",
+    "primary_hand": "none",
+    "two_hand_relation": "same-action",
+    "contact_presence": "none",
+    "body_region_primary": "chest",
+    "path_family": "push-pull",
+    "arm_motion": "static",
+    "hand_motion": "static",
+    "finger_motion": "static",
+    "head_motion": "none",
+    "overall_description": "The sign is performed with both hands near the chest. Both hands have the index finger extended, and they move forward and back in small, repeated pulses. The hands move together in parallel.",
+    "movement_summary": "Both hands index finger extended, small repeated push-pull near chest.",
+    "analogy_description": [
+      "Like gently pushing and releasing two small drawers. The two pointers move in a tiny push–pull."
+    ],
+    "visual_rationale": "The repeated push-pull motion of the index fingers is the most distinguishing cue.",
+    "video_file": "ambulance.mp4"
+  },
+  {
+    "word": "bank",
+    "hands_used": "both",
+    "primary_hand": "none",
+    "two_hand_relation": "same-action",
+    "contact_presence": "none",
+    "body_region_primary": "chest",
+    "path_family": "push-pull",
+    "arm_motion": "static",
+    "hand_motion": "static",
+    "finger_motion": "static",
+    "head_motion": "none",
+    "overall_description": "Both hands are used in this sign. The hands are held near the chest with index fingers extended. The hands move forward and back in a small, repeated motion.",
+    "movement_summary": "Both hands pulse forward and back near the chest, index fingers extended.",
+    "analogy_description": [
+      "Like gently pushing and releasing two small drawers. The two pointers move in a tiny push–pull."
+    ],
+    "visual_rationale": "The repeated push-pull motion of the index fingers is the most distinguishing cue.",
+    "video_file": "bank.mp4"
+  },
+  {
+    "word": "blood",
+    "hands_used": "both",
+    "primary_hand": "none",
+    "two_hand_relation": "same-action",
+    "contact_presence": "none",
+    "body_region_primary": "chest",
+    "path_family": "push-pull",
+    "arm_motion": "static",
+    "hand_motion": "static",
+    "finger_motion": "static",
+    "head_motion": "none",
+    "overall_description": "Both hands have the index finger extended, and are held near the chest. The hands move forward and back in small, repeated pulses, as if gently pushing something away and then pulling it back. The motion is done twice.",
+    "movement_summary": "Both index fingers pulse forward and back near the chest, repeated.",
+    "analogy_description": [
+      "Like gently pushing and releasing two small drawers. The two pointers move in a tiny push–pull."
+    ],
+    "visual_rationale": "The repeated push-pull motion of the index fingers near the chest is the most distinguishing cue.",
+    "video_file": "blood.mp4"
+  },
+  {
+    "word": "body",
+    "hands_used": "both",
+    "primary_hand": "none",
+    "two_hand_relation": "same-action",
+    "contact_presence": "none",
+    "body_region_primary": "chest",
+    "path_family": "push-pull",
+    "arm_motion": "static",
+    "hand_motion": "static",
+    "finger_motion": "static",
+    "head_motion": "none",
+    "overall_description": "The signer uses both hands with index fingers extended. The hands move forward and back from the chest in a small, repeated pulsing motion.",
+    "movement_summary": "Both index fingers pulse forward and back near the chest.",
+    "analogy_description": [
+      "Like gently pushing and releasing two small drawers. The two pointers move in a tiny push–pull."
+    ],
+    "visual_rationale": "The repeated pulsing motion of the index fingers near the chest is the most distinguishing cue.",
+    "video_file": "body.mp4"
+  },
+  {
+    "word": "bone",
+    "hands_used": "both",
+    "primary_hand": "none",
+    "two_hand_relation": "same-action",
+    "contact_presence": "none",
+    "body_region_primary": "chest",
+    "path_family": "push-pull",
+    "arm_motion": "static",
+    "hand_motion": "static",
+    "finger_motion": "static",
+    "head_motion": "none",
+    "overall_description": "Both hands are held near the chest with index fingers extended. The hands move forward and back in small, repeated pulses, as if gently pushing something away and then pulling it back. The movement is parallel and symmetrical.",
+    "movement_summary": "Both index fingers pulse forward and back near the chest.",
+    "analogy_description": [
+      "Like gently pushing and releasing two small drawers. The two pointers move in a tiny push–pull."
+    ],
+    "visual_rationale": "The repeated push-pull motion of the index fingers is the most distinguishing cue.",
+    "video_file": "bone.mp4"
+  },
+  {
+    "word": "brother",
+    "hands_used": "both",
+    "primary_hand": "none",
+    "two_hand_relation": "same-action",
+    "contact_presence": "none",
+    "body_region_primary": "chest",
+    "path_family": "push-pull",
+    "arm_motion": "static",
+    "hand_motion": "static",
+    "finger_motion": "static",
+    "head_motion": "none",
+    "overall_description": "The sign is performed with both hands near the chest. The index fingers are extended and point forward, while the hands move in small, repeated, parallel push-pull motions.",
+    "movement_summary": "Both index fingers point forward, small repeated push-pull near chest.",
+    "analogy_description": [
+      "Like gently pushing and releasing two small drawers. The two pointers move in a tiny push–pull."
+    ],
+    "visual_rationale": "The repeated push-pull motion of the index fingers near the chest is the most distinguishing cue.",
+    "video_file": "brother.mp4"
+  },
+  {
+    "word": "call",
+    "hands_used": "both",
+    "primary_hand": "none",
+    "two_hand_relation": "same-action",
+    "contact_presence": "none",
+    "body_region_primary": "chest",
+    "path_family": "push-pull",
+    "arm_motion": "static",
+    "hand_motion": "static",
+    "finger_motion": "static",
+    "head_motion": "none",
+    "overall_description": "Both hands are used to make a repeated small push-pull motion near the chest. The index fingers are extended, and the hands move in parallel.",
+    "movement_summary": "Parallel index fingers pulse forward and back near the chest.",
+    "analogy_description": [
+      "Like gently pushing and releasing two small drawers. The two pointers move in a tiny push–pull."
+    ],
+    "visual_rationale": "The parallel index fingers pulsing near the chest are the most distinguishing cue.",
+    "video_file": "call.mp4"
+  },
+  {
+    "word": "can",
+    "hands_used": "both",
+    "primary_hand": "none",
+    "two_hand_relation": "same-action",
+    "contact_presence": "none",
+    "body_region_primary": "chest",
+    "path_family": "push-pull",
+    "arm_motion": "static",
+    "hand_motion": "static",
+    "finger_motion": "static",
+    "head_motion": "none",
+    "overall_description": "Both hands start near the chest with index fingers extended. The hands then move forward and back in a small, repeated pulsing motion, keeping the index fingers extended. This action is repeated twice.",
+    "movement_summary": "Both index fingers pulse forward and back near the chest, repeated.",
+    "analogy_description": [
+      "Like gently pushing and releasing two small drawers. The two pointers move in a tiny push–pull."
+    ],
+    "visual_rationale": "The repeated, small push-pull motion of the index fingers is the most distinguishing cue.",
+    "video_file": "can.mp4"
+  },
+  {
+    "word": "chain",
+    "hands_used": "both",
+    "primary_hand": "none",
+    "two_hand_relation": "same-action",
+    "contact_presence": "none",
+    "body_region_primary": "chest",
+    "path_family": "push-pull",
+    "arm_motion": "static",
+    "hand_motion": "static",
+    "finger_motion": "static",
+    "head_motion": "none",
+    "overall_description": "Both hands have index fingers extended, pointing forward. The hands move together in small, repeated push-pull motions away from and toward the body, near the chest. The motion is parallel.",
+    "movement_summary": "Both hands index fingers extended, small repeated push-pull near chest.",
+    "analogy_description": [
+      "Like gently pushing and releasing two small drawers. The two pointers move in a tiny push–pull."
+    ],
+    "visual_rationale": "The repeated push-pull motion of the index fingers is the most distinguishing cue.",
+    "video_file": "chain.mp4"
+  },
+  {
+    "word": "check",
+    "hands_used": "both",
+    "primary_hand": "none",
+    "two_hand_relation": "same-action",
+    "contact_presence": "none",
+    "body_region_primary": "chest",
+    "path_family": "push-pull",
+    "arm_motion": "static",
+    "hand_motion": "static",
+    "finger_motion": "static",
+    "head_motion": "none",
+    "overall_description": "Both hands, with index fingers extended, move forward and back in a small, repeated pulsing motion near the chest. The hands move together in parallel, creating a push-pull action.",
+    "movement_summary": "Both index fingers pulse forward and back near the chest, repeated.",
+    "analogy_description": [
+      "Like gently pushing and releasing two small drawers. The two pointers move in a tiny push–pull."
+    ],
+    "visual_rationale": "The repeated push-pull motion of the index fingers is the most distinguishing cue.",
+    "video_file": "check.mp4"
+  },
+  {
+    "word": "closed",
+    "hands_used": "both",
+    "primary_hand": "none",
+    "two_hand_relation": "same-action",
+    "contact_presence": "none",
+    "body_region_primary": "chest",
+    "path_family": "push-pull",
+    "arm_motion": "static",
+    "hand_motion": "static",
+    "finger_motion": "static",
+    "head_motion": "none",
+    "overall_description": "Both hands start near the chest with index fingers extended. The hands then move forward and back in a small, repeated pulsing motion, maintaining a parallel orientation.",
+    "movement_summary": "Both hands pulse forward and back with index fingers extended.",
+    "analogy_description": [
+      "Like gently pushing and releasing two small drawers. The two pointers move in a tiny push–pull."
+    ],
+    "visual_rationale": "The repeated outward-inward motion of the hands with extended index fingers is the most distinguishing cue.",
+    "video_file": "closed.mp4"
+  },
+  {
+    "word": "count",
+    "hands_used": "both",
+    "primary_hand": "none",
+    "two_hand_relation": "same-action",
+    "contact_presence": "none",
+    "body_region_primary": "chest",
+    "path_family": "push-pull",
+    "arm_motion": "static",
+    "hand_motion": "static",
+    "finger_motion": "static",
+    "head_motion": "none",
+    "overall_description": "Both hands are held near the chest with index fingers extended. The hands move forward and back in small, repeated pulses. The motion is parallel and symmetrical.",
+    "movement_summary": "Parallel index fingers pulse forward and back near the chest, repeated.",
+    "analogy_description": [
+      "Like gently pushing and releasing two small drawers. The two pointers move in a tiny push–pull."
+    ],
+    "visual_rationale": "The parallel, pulsing index fingers are the most distinguishing cue.",
+    "video_file": "count.mp4"
+  },
+  {
+    "word": "daily",
+    "hands_used": "both",
+    "primary_hand": "none",
+    "two_hand_relation": "same-action",
+    "contact_presence": "none",
+    "body_region_primary": "chest",
+    "path_family": "push-pull",
+    "arm_motion": "static",
+    "hand_motion": "static",
+    "finger_motion": "static",
+    "head_motion": "none",
+    "overall_description": "Both hands, with index fingers extended, move forward and back near the chest. The motion is repeated twice. The hands move in parallel.",
+    "movement_summary": "Both index fingers pulse forward and back, near the chest.",
+    "analogy_description": [
+      "Like gently pushing and releasing two small drawers. The two pointers move in a tiny push–pull."
+    ],
+    "visual_rationale": "The repeated push-pull motion of the index fingers near the chest is the most distinguishing cue.",
+    "video_file": "daily.mp4"
+  },
+  {
+    "word": "door frame",
+    "hands_used": "both",
+    "primary_hand": "none",
+    "two_hand_relation": "same-action",
+    "contact_presence": "none",
+    "body_region_primary": "chest",
+    "path_family": "push-pull",
+    "arm_motion": "static",
+    "hand_motion": "static",
+    "finger_motion": "static",
+    "head_motion": "none",
+    "overall_description": "Both hands start near the chest with index fingers extended and other fingers curled into a fist. The hands then move forward and back in a small, repeated pulsing motion, maintaining a parallel orientation.",
+    "movement_summary": "Both hands pulse forward and back with index fingers extended.",
+    "analogy_description": [
+      "Like gently pushing and releasing two small drawers. The two pointers move in a tiny push–pull."
+    ],
+    "visual_rationale": "The repeated push-pull motion of the index fingers is the most distinguishing cue.",
+    "video_file": "door frame.mp4"
+  },
+  {
+    "word": "ear",
+    "hands_used": "both",
+    "primary_hand": "none",
+    "two_hand_relation": "same-action",
+    "contact_presence": "none",
+    "body_region_primary": "chest",
+    "path_family": "push-pull",
+    "arm_motion": "static",
+    "hand_motion": "static",
+    "finger_motion": "static",
+    "head_motion": "none",
+    "overall_description": "Both hands, with index fingers extended, move forward and back near the chest. The motion is repeated twice. The hands move in parallel.",
+    "movement_summary": "Both index fingers pulse forward and back, parallel, near chest.",
+    "analogy_description": [
+      "Like gently pushing and releasing two small drawers. The two pointers move in a tiny push–pull."
+    ],
+    "visual_rationale": "The parallel push-pull motion of the index fingers is the most distinguishing cue.",
+    "video_file": "ear.mp4"
+  },
+  {
+    "word": "face",
+    "hands_used": "both",
+    "primary_hand": "none",
+    "two_hand_relation": "same-action",
+    "contact_presence": "none",
+    "body_region_primary": "chest",
+    "path_family": "push-pull",
+    "arm_motion": "static",
+    "hand_motion": "static",
+    "finger_motion": "static",
+    "head_motion": "none",
+    "overall_description": "The sign is performed with both hands near the chest. Both hands have the index finger extended, and the hands move forward and back in a small, repeated pulsing motion.",
+    "movement_summary": "Both hands index extended, pulsing forward and back near chest.",
+    "analogy_description": [
+      "Like gently pushing and releasing two small drawers. The two pointers move in a tiny push–pull."
+    ],
+    "visual_rationale": "The key cue is the repeated, small push-pull motion of the index fingers near the chest.",
+    "video_file": "face.mp4"
+  },
+  {
+    "word": "family (2)",
+    "hands_used": "both",
+    "primary_hand": "none",
+    "two_hand_relation": "same-action",
+    "contact_presence": "none",
+    "body_region_primary": "chest",
+    "path_family": "push-pull",
+    "arm_motion": "static",
+    "hand_motion": "static",
+    "finger_motion": "static",
+    "head_motion": "none",
+    "overall_description": "The signer extends both hands in front of the chest, palms facing up. The hands then move forward and back in a small, repeated pulsing motion.",
+    "movement_summary": "Both hands pulse forward and back near the chest, palms up.",
+    "analogy_description": [
+      "Like gently pushing and releasing two small drawers. The two pointers move in a tiny push–pull."
+    ],
+    "visual_rationale": "The repeated push-pull motion of the hands is the most distinguishing cue.",
+    "video_file": "family (2).mp4"
+  },
+  {
+    "word": "family",
+    "hands_used": "both",
+    "primary_hand": "none",
+    "two_hand_relation": "same-action",
+    "contact_presence": "none",
+    "body_region_primary": "chest",
+    "path_family": "push-pull",
+    "arm_motion": "static",
+    "hand_motion": "static",
+    "finger_motion": "static",
+    "head_motion": "none",
+    "overall_description": "Both hands are held near the chest with index fingers extended. The hands move forward and back in small, repeated pulses, as if gently pushing something away and then pulling it back. This action is repeated twice.",
+    "movement_summary": "Both index fingers pulse forward and back near the chest, twice.",
+    "analogy_description": [
+      "Like gently pushing and releasing two small drawers. The two pointers move in a tiny push–pull."
+    ],
+    "visual_rationale": "The repeated push-pull motion of the index fingers is the most distinguishing cue.",
+    "video_file": "family.mp4"
+  }
+]
