@@ -267,7 +267,7 @@ def train(args):
     print(f"Best val acc: {best_acc:.3f}")
 
 
-def run_attentionlite_mhi(num_words=1, root='Words', seed: int = 42, out_dir: str = 'results'):
+def run_attentionlite_mhi(num_words=1, root='Words_train', seed: int = 42, out_dir: str = 'results'):
     # Build a tiny dataset using the same class, but taking first num_words samples and remapping labels
     class _Args: pass
     args = _Args()
@@ -367,7 +367,7 @@ def run_attentionlite_mhi(num_words=1, root='Words', seed: int = 42, out_dir: st
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument('--num_words', type=int, default=1)
-    p.add_argument('--root', type=str, default='Words')
+    p.add_argument('--root', type=str, default='Words_train')
     p.add_argument('--seed', type=int, default=42)
     p.add_argument('--out_dir', type=str, default='results')
     args = p.parse_args()

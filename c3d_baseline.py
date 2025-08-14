@@ -114,7 +114,7 @@ def _remap_subset(samples):
     return new_samples, next_idx
 
 
-def run_c3d(num_words=1, root="Words", use_pretrained=True, seed: int = 42, out_dir: str = "results"):
+def run_c3d(num_words=1, root="Words_train", use_pretrained=True, seed: int = 42, out_dir: str = "results"):
     """Run a minimal C3D pipeline on a small subset (num_words samples) and save accuracy."""
     ds = VideoISLR3D(root, clip_len=16, size=112)
     if len(ds) == 0:
@@ -191,7 +191,7 @@ if __name__ == "__main__":
     import argparse
     ap = argparse.ArgumentParser()
     ap.add_argument("--num_words", type=int, default=1)
-    ap.add_argument("--root", type=str, default="Words")
+    ap.add_argument("--root", type=str, default="Words_train")
     ap.add_argument("--no_pretrained", action="store_true")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--out_dir", type=str, default="results")

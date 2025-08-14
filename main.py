@@ -2,14 +2,15 @@
 Unified entry point that dispatches to baseline modules. No training code here.
 
 Usage:
-  python main.py --method METHOD --num_words N [--backend lstm|transformer]
+  python main.py --method METHOD --num_words N [--split train|test]
 
 Methods:
   - attentionlite_mhi
   - c3d
   - cnn_lstm
   - zero_shot
-  - mediapipe (backend selectable)
+  - mediapipe_transformer
+  - mediapipe_lstm
 """
 
 import argparse
@@ -24,29 +25,34 @@ from Mediapipe_baseline import run_mediapipe
 def main():
     parser = argparse.ArgumentParser(description="Unified PSL Sign Recognition Runner")
     parser.add_argument('--method', type=str, required=True,
-                        choices=['attentionlite_mhi', 'c3d', 'cnn_lstm', 'zero_shot', 'mediapipe'],
+                        choices=['attentionlite_mhi', 'c3d', 'cnn_lstm', 'zero_shot', 'mediapipe_transformer', 'mediapipe_lstm'],
                         help='Method to run')
     parser.add_argument('--num_words', type=int, default=1,
                         help='Number of samples/videos to run')
-    parser.add_argument('--root', type=str, default='Words', help='Video root directory')
-    parser.add_argument('--backend', type=str, default='transformer', choices=['transformer', 'lstm'],
-                        help='Backend for mediapipe baseline')
+    parser.add_argument('--split', type=str, default='train', choices=['train', 'test'],
+                        help='Choose dataset split: train -> Words_train, test -> Words_test')
+    parser.add_argument('--root', type=str, default=None, help='Override video root directory (default comes from --split)')
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--out_dir', type=str, default='results')
 
     args = parser.parse_args()
 
-    if args.method == 'attentionlite_mhi':
-        run_attentionlite_mhi(num_words=args.num_words, root=args.root, seed=args.seed, out_dir=args.out_dir)
-    elif args.method == 'c3d':
-        run_c3d(num_words=args.num_words, root=args.root, seed=args.seed, out_dir=args.out_dir)
-    elif args.method == 'cnn_lstm':
-        run_cnn_lstm(num_words=args.num_words, root=args.root, seed=args.seed, out_dir=args.out_dir)
-    elif args.method == 'zero_shot':
-        run_zero_shot(num_words=args.num_words, seed=args.seed, out_dir=args.out_dir)
-    elif args.method == 'mediapipe':
-        run_mediapipe(num_words=args.num_words, video_dir=args.root, backend=args.backend, seed=args.seed, out_dir=args.out_dir)
+    # Resolve root directory from split unless explicitly overridden
+    default_root = 'Words_train' if args.split == 'train' else 'Words_test'
+    root_dir = args.root if args.root else default_root
 
+    if args.method == 'attentionlite_mhi':
+        run_attentionlite_mhi(num_words=args.num_words, root=root_dir, seed=args.seed, out_dir=args.out_dir)
+    elif args.method == 'c3d':
+        run_c3d(num_words=args.num_words, root=root_dir, seed=args.seed, out_dir=args.out_dir)
+    elif args.method == 'cnn_lstm':
+        run_cnn_lstm(num_words=args.num_words, root=root_dir, seed=args.seed, out_dir=args.out_dir)
+    elif args.method == 'zero_shot':
+        run_zero_shot(num_words=args.num_words, video_dir=root_dir, seed=args.seed, out_dir=args.out_dir)
+    elif args.method == 'mediapipe_transformer':
+        run_mediapipe(num_words=args.num_words, video_dir=root_dir, backend='transformer', seed=args.seed, out_dir=args.out_dir)
+    elif args.method == 'mediapipe_lstm':
+        run_mediapipe(num_words=args.num_words, video_dir=root_dir, backend='lstm', seed=args.seed, out_dir=args.out_dir)
 
 if __name__ == '__main__':
     main()

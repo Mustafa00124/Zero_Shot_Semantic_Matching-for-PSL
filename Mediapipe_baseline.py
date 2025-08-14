@@ -15,7 +15,7 @@ from collections import deque
 from scipy.signal import find_peaks
 
 # ========== Configuration ==========
-VIDEO_DIR = "Words"
+VIDEO_DIR = "Words_train"
 SINGLE_TEST_VIDEO = "massage.mp4"
 CONTINUOUS_TEST_VIDEO = "body massage.mp4"
 MAX_FRAMES = 30

@@ -29,7 +29,7 @@ from sentence_transformers import SentenceTransformer, util
 # ---------------------------
 API_KEY = "AIzaSyBNsavVonNcYikKM0hTzPwtehVmFjPLJZo"
 MODEL_NAME = "gemini-2.0-flash"
-VIDEO_DIR = "Words"
+VIDEO_DIR = "Words_test"
 VOCAB_FILE = "psl_vocabulary_structured.json"
 MAX_RETRIES = 3
 INITIAL_DELAY = 1.0
@@ -527,7 +527,7 @@ def describe_test_video(video_path: Path) -> Dict[str, Any]:
 # ---------------------------
 # Main testing function
 # ---------------------------
-def test_words(num_words: int, seed: int = 42, out_dir: str = "results"):
+def test_words(num_words: int, video_dir: str = VIDEO_DIR, seed: int = 42, out_dir: str = "results"):
     """Test PSL matching and save accuracy and detailed logs under results/zero_shot."""
     vocab = load_vocabulary(VOCAB_FILE)
     if not vocab:
@@ -538,10 +538,10 @@ def test_words(num_words: int, seed: int = 42, out_dir: str = "results"):
     logger.info("Loading sentence-transformers: all-MiniLM-L6-v2")
     st_model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 
-    test_dir = Path(VIDEO_DIR)
+    test_dir = Path(video_dir)
     vids = sorted(list(test_dir.glob("*.mp4")))
     if not vids:
-        logger.error(f"No .mp4 files found in {VIDEO_DIR}")
+        logger.error(f"No .mp4 files found in {video_dir}")
         return
 
     # Seed selection
@@ -663,17 +663,18 @@ def test_words(num_words: int, seed: int = 42, out_dir: str = "results"):
 # ------------------------------------
 # CLI
 # ------------------------------------
-def run_zero_shot(num_words: int = 1, seed: int = 42, out_dir: str = "results"):
+def run_zero_shot(num_words: int = 1, video_dir: str = VIDEO_DIR, seed: int = 42, out_dir: str = "results"):
     """Convenience wrapper to match other baselines."""
-    return test_words(num_words, seed=seed, out_dir=out_dir)
+    return test_words(num_words, video_dir=video_dir, seed=seed, out_dir=out_dir)
 def main():
     ap = argparse.ArgumentParser(description="Structured PSL test-time matcher (3-stage) with similarity thresholds")
     ap.add_argument("--num_words", type=int, default=1, help="How many test videos to run.")
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--video_dir", type=str, default=VIDEO_DIR)
     ap.add_argument("--out_dir", type=str, default="results")
     args = ap.parse_args()
 
-    test_words(args.num_words, seed=args.seed, out_dir=args.out_dir)
+    test_words(args.num_words, video_dir=args.video_dir, seed=args.seed, out_dir=args.out_dir)
 
 if __name__ == "__main__":
     main()

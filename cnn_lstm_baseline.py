@@ -118,7 +118,7 @@ def _remap_subset(samples):
     return remapped, next_id
 
 
-def run_cnn_lstm(num_words=1, root="Words", seed: int = 42, out_dir: str = "results"):
+def run_cnn_lstm(num_words=1, root="Words_train", seed: int = 42, out_dir: str = "results"):
     ds = VideoISLRDataset(root, clip_len=24, size=299)
     if len(ds) == 0:
         print(f"No videos found in {root}")
@@ -198,7 +198,7 @@ if __name__ == "__main__":
     import argparse
     ap = argparse.ArgumentParser()
     ap.add_argument("--num_words", type=int, default=1)
-    ap.add_argument("--root", type=str, default="Words")
+    ap.add_argument("--root", type=str, default="Words_train")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--out_dir", type=str, default="results")
     args = ap.parse_args()
