@@ -4,7 +4,7 @@ setlocal
 REM Define lists for parameters
 set seed_list=1
 set method_list=attentionlite_mhi c3d cnn_lstm zero_shot mediapipe_transformer mediapipe_lstm
-set num_words_list=20
+set num_words_list=1
 set split_list=train test
 
 REM Loop over parameters

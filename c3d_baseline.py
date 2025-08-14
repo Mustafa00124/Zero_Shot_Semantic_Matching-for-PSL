@@ -114,11 +114,13 @@ def _remap_subset(samples):
     return new_samples, next_idx
 
 
-def run_c3d(num_words=1, root="Words_train", use_pretrained=True, seed: int = 42, out_dir: str = "results"):
+def run_c3d(num_words=1, split="train", use_pretrained=True, seed: int = 42, out_dir: str = "results"):
     """Run a minimal C3D pipeline on a small subset (num_words samples) and save accuracy."""
-    ds = VideoISLR3D(root, clip_len=16, size=112)
+    # Training always uses Words_train, testing uses split parameter
+    test_root = "Words_train" if split == "train" else "Words_test"
+    ds = VideoISLR3D(test_root, clip_len=16, size=112)
     if len(ds) == 0:
-        print(f"No videos found in {root}")
+        print(f"No videos found in {test_root}")
         return
 
     # Select subset by seed
@@ -172,12 +174,11 @@ def run_c3d(num_words=1, root="Words_train", use_pretrained=True, seed: int = 42
     # Save results
     method_dir = os.path.join(out_dir, "c3d")
     os.makedirs(method_dir, exist_ok=True)
-    ts = time.strftime("%Y%m%d_%H%M%S")
-    out_path = os.path.join(method_dir, f"accuracy_seed{seed}_n{num_words}.json")
+    out_path = os.path.join(method_dir, f"accuracy_seed{seed}_n{num_words}_{split}.json")
     with open(out_path, 'w') as f:
         json.dump({
-            "timestamp": ts,
             "method": "c3d",
+            "split": split,
             "seed": seed,
             "num_words": num_words,
             "total": int(total),
@@ -191,9 +192,9 @@ if __name__ == "__main__":
     import argparse
     ap = argparse.ArgumentParser()
     ap.add_argument("--num_words", type=int, default=1)
-    ap.add_argument("--root", type=str, default="Words_train")
+    ap.add_argument("--split", type=str, default="train", choices=["train", "test"])
     ap.add_argument("--no_pretrained", action="store_true")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--out_dir", type=str, default="results")
     args = ap.parse_args()
-    run_c3d(num_words=args.num_words, root=args.root, use_pretrained=not args.no_pretrained, seed=args.seed, out_dir=args.out_dir)
+    run_c3d(num_words=args.num_words, split=args.split, use_pretrained=not args.no_pretrained, seed=args.seed, out_dir=args.out_dir)

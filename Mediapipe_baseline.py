@@ -504,10 +504,12 @@ def test_continuous_signing(model, video_path, vocab):
     return sentence
 
 # ========== Main ==========
-def run_mediapipe(num_words=1, video_dir=VIDEO_DIR, backend="transformer", seed: int = 42, out_dir: str = "results"):
-    dataset = SignDataset(video_dir)
+def run_mediapipe(num_words=1, split="train", backend="transformer", seed: int = 42, out_dir: str = "results"):
+    # Training always uses Words_train, testing uses split parameter
+    test_root = "Words_train" if split == "train" else "Words_test"
+    dataset = SignDataset(test_root)
     if len(dataset) == 0:
-        print(f"No .mp4 files found in {video_dir}")
+        print(f"No .mp4 files found in {test_root}")
         return
 
     # build a small subset loader with seed
@@ -550,12 +552,11 @@ def run_mediapipe(num_words=1, video_dir=VIDEO_DIR, backend="transformer", seed:
     # Save results
     method_dir = os.path.join(out_dir, f"mediapipe_{backend}")
     os.makedirs(method_dir, exist_ok=True)
-    ts = time.strftime("%Y%m%d_%H%M%S")
-    out_path = os.path.join(method_dir, f"accuracy_seed{seed}_n{num_words}.json")
+    out_path = os.path.join(method_dir, f"accuracy_seed{seed}_n{num_words}_{split}.json")
     with open(out_path, 'w') as f:
         json.dump({
-            "timestamp": ts,
             "method": f"mediapipe_{backend}",
+            "split": split,
             "seed": seed,
             "num_words": num_words,
             "total": int(total),
@@ -570,9 +571,9 @@ if __name__ == "__main__":
     import argparse
     ap = argparse.ArgumentParser()
     ap.add_argument("--num_words", type=int, default=1)
-    ap.add_argument("--video_dir", type=str, default=VIDEO_DIR)
+    ap.add_argument("--split", type=str, default="train", choices=["train", "test"])
     ap.add_argument("--backend", type=str, choices=["transformer", "lstm"], default="transformer")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--out_dir", type=str, default="results")
     args = ap.parse_args()
-    run_mediapipe(num_words=args.num_words, video_dir=args.video_dir, backend=args.backend, seed=args.seed, out_dir=args.out_dir)
+    run_mediapipe(num_words=args.num_words, split=args.split, backend=args.backend, seed=args.seed, out_dir=args.out_dir)

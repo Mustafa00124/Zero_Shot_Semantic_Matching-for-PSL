@@ -107,13 +107,29 @@ class ISLRDataset(Dataset):
     def __init__(self, root: str, clip_len: int = 16, size: int = 112):
         super().__init__()
         self.samples = []  # (path, class_idx)
-        self.classes = sorted([d for d in os.listdir(root) if os.path.isdir(os.path.join(root, d))])
-        self.class_to_idx = {c:i for i,c in enumerate(self.classes)}
-        for c in self.classes:
+        self.classes = []
+        self.class_to_idx = {}
+        
+        entries = sorted(os.listdir(root))
+        # Directory-based layout support
+        for c in [d for d in entries if os.path.isdir(os.path.join(root, d))]:
+            self.class_to_idx.setdefault(c, len(self.classes))
+            if c not in self.classes:
+                self.classes.append(c)
             cdir = os.path.join(root, c)
             for f in os.listdir(cdir):
                 if f.lower().endswith(('.mp4','.mov','.avi','.mkv')):
                     self.samples.append((os.path.join(cdir, f), self.class_to_idx[c]))
+
+        # Flat layout support (like CNN-LSTM baseline)
+        for f in entries:
+            fpath = os.path.join(root, f)
+            if os.path.isfile(fpath) and f.lower().endswith(('.mp4','.mov','.avi','.mkv')):
+                stem = os.path.splitext(f)[0]
+                self.class_to_idx.setdefault(stem, len(self.classes))
+                if stem not in self.classes:
+                    self.classes.append(stem)
+                self.samples.append((fpath, self.class_to_idx[stem]))
         self.clip_len = clip_len
         self.resize = transforms.Resize((size, size), antialias=True)
         # Kinetics normalization
@@ -267,12 +283,14 @@ def train(args):
     print(f"Best val acc: {best_acc:.3f}")
 
 
-def run_attentionlite_mhi(num_words=1, root='Words_train', seed: int = 42, out_dir: str = 'results'):
+def run_attentionlite_mhi(num_words=1, split='train', seed: int = 42, out_dir: str = 'results'):
     # Build a tiny dataset using the same class, but taking first num_words samples and remapping labels
+    # Training always uses Words_train, testing uses split parameter
+    test_root = 'Words_train' if split == 'train' else 'Words_test'
     class _Args: pass
     args = _Args()
-    args.train_dir = root
-    args.val_dir = root
+    args.train_dir = 'Words_train'  # Training always from Words_train
+    args.val_dir = test_root        # Testing from split
     args.clip_len = 16
     args.size = 112
     args.batch_size = 1
@@ -285,9 +303,9 @@ def run_attentionlite_mhi(num_words=1, root='Words_train', seed: int = 42, out_d
     args.out_dir = 'checkpoints'
 
     # Create full dataset to access classes and samples
-    full = ISLRDataset(root, clip_len=args.clip_len, size=args.size)
+    full = ISLRDataset(test_root, clip_len=args.clip_len, size=args.size)
     if len(full) == 0:
-        print(f"No videos found in {root}")
+        print(f"No videos found in {test_root}")
         return
     # Build manual subset
     import random, json, time
@@ -348,12 +366,11 @@ def run_attentionlite_mhi(num_words=1, root='Words_train', seed: int = 42, out_d
     # Save results
     method_dir = os.path.join(out_dir, 'attentionlite_mhi')
     os.makedirs(method_dir, exist_ok=True)
-    ts = time.strftime('%Y%m%d_%H%M%S')
-    out_path = os.path.join(method_dir, f"accuracy_seed{seed}_n{num_words}.json")
+    out_path = os.path.join(method_dir, f"accuracy_seed{seed}_n{num_words}_{split}.json")
     with open(out_path, 'w') as f:
         json.dump({
-            'timestamp': ts,
             'method': 'attentionlite_mhi',
+            'split': split,
             'seed': seed,
             'num_words': num_words,
             'total': int(total),
@@ -367,8 +384,8 @@ def run_attentionlite_mhi(num_words=1, root='Words_train', seed: int = 42, out_d
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument('--num_words', type=int, default=1)
-    p.add_argument('--root', type=str, default='Words_train')
+    p.add_argument('--split', type=str, default='train', choices=['train', 'test'])
     p.add_argument('--seed', type=int, default=42)
     p.add_argument('--out_dir', type=str, default='results')
     args = p.parse_args()
-    run_attentionlite_mhi(num_words=args.num_words, root=args.root, seed=args.seed, out_dir=args.out_dir)
+    run_attentionlite_mhi(num_words=args.num_words, split=args.split, seed=args.seed, out_dir=args.out_dir)

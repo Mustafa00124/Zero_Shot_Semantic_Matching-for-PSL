@@ -1,9 +1,0 @@
-{
-  "timestamp": "20250811_171235",
-  "method": "zero_shot",
-  "seed": 123,
-  "num_words": 1,
-  "total_tested": 1,
-  "correct": 0,
-  "accuracy": 0.0
-}

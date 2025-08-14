@@ -118,10 +118,12 @@ def _remap_subset(samples):
     return remapped, next_id
 
 
-def run_cnn_lstm(num_words=1, root="Words_train", seed: int = 42, out_dir: str = "results"):
-    ds = VideoISLRDataset(root, clip_len=24, size=299)
+def run_cnn_lstm(num_words=1, split="train", seed: int = 42, out_dir: str = "results"):
+    # Training always uses Words_train, testing uses split parameter
+    test_root = "Words_train" if split == "train" else "Words_test"
+    ds = VideoISLRDataset(test_root, clip_len=24, size=299)
     if len(ds) == 0:
-        print(f"No videos found in {root}")
+        print(f"No videos found in {test_root}")
         return
     rng = random.Random(seed)
     indices = list(range(len(ds.samples)))
@@ -162,12 +164,11 @@ def run_cnn_lstm(num_words=1, root="Words_train", seed: int = 42, out_dir: str =
     # Save results
     method_dir = os.path.join(out_dir, "cnn_lstm")
     os.makedirs(method_dir, exist_ok=True)
-    ts = time.strftime("%Y%m%d_%H%M%S")
-    out_path = os.path.join(method_dir, f"accuracy_seed{seed}_n{num_words}.json")
+    out_path = os.path.join(method_dir, f"accuracy_seed{seed}_n{num_words}_{split}.json")
     with open(out_path, 'w') as f:
         json.dump({
-            "timestamp": ts,
             "method": "cnn_lstm",
+            "split": split,
             "seed": seed,
             "num_words": num_words,
             "total": int(total),
@@ -198,8 +199,8 @@ if __name__ == "__main__":
     import argparse
     ap = argparse.ArgumentParser()
     ap.add_argument("--num_words", type=int, default=1)
-    ap.add_argument("--root", type=str, default="Words_train")
+    ap.add_argument("--split", type=str, default="train", choices=["train", "test"])
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--out_dir", type=str, default="results")
     args = ap.parse_args()
-    run_cnn_lstm(num_words=args.num_words, root=args.root, seed=args.seed, out_dir=args.out_dir)
+    run_cnn_lstm(num_words=args.num_words, split=args.split, seed=args.seed, out_dir=args.out_dir)

@@ -1,7 +1,7 @@
 {
-  "timestamp": "20250811_171045",
-  "method": "c3d",
-  "seed": 123,
+  "method": "attentionlite_mhi",
+  "split": "train",
+  "seed": 1,
   "num_words": 1,
   "total": 1,
   "correct": 1,

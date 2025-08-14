@@ -30,29 +30,24 @@ def main():
     parser.add_argument('--num_words', type=int, default=1,
                         help='Number of samples/videos to run')
     parser.add_argument('--split', type=str, default='train', choices=['train', 'test'],
-                        help='Choose dataset split: train -> Words_train, test -> Words_test')
-    parser.add_argument('--root', type=str, default=None, help='Override video root directory (default comes from --split)')
+                        help='Choose dataset split for testing: train -> Words_train, test -> Words_test')
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--out_dir', type=str, default='results')
 
     args = parser.parse_args()
 
-    # Resolve root directory from split unless explicitly overridden
-    default_root = 'Words_train' if args.split == 'train' else 'Words_test'
-    root_dir = args.root if args.root else default_root
-
     if args.method == 'attentionlite_mhi':
-        run_attentionlite_mhi(num_words=args.num_words, root=root_dir, seed=args.seed, out_dir=args.out_dir)
+        run_attentionlite_mhi(num_words=args.num_words, split=args.split, seed=args.seed, out_dir=args.out_dir)
     elif args.method == 'c3d':
-        run_c3d(num_words=args.num_words, root=root_dir, seed=args.seed, out_dir=args.out_dir)
+        run_c3d(num_words=args.num_words, split=args.split, seed=args.seed, out_dir=args.out_dir)
     elif args.method == 'cnn_lstm':
-        run_cnn_lstm(num_words=args.num_words, root=root_dir, seed=args.seed, out_dir=args.out_dir)
+        run_cnn_lstm(num_words=args.num_words, split=args.split, seed=args.seed, out_dir=args.out_dir)
     elif args.method == 'zero_shot':
-        run_zero_shot(num_words=args.num_words, video_dir=root_dir, seed=args.seed, out_dir=args.out_dir)
+        run_zero_shot(num_words=args.num_words, split=args.split, seed=args.seed, out_dir=args.out_dir)
     elif args.method == 'mediapipe_transformer':
-        run_mediapipe(num_words=args.num_words, video_dir=root_dir, backend='transformer', seed=args.seed, out_dir=args.out_dir)
+        run_mediapipe(num_words=args.num_words, split=args.split, backend='transformer', seed=args.seed, out_dir=args.out_dir)
     elif args.method == 'mediapipe_lstm':
-        run_mediapipe(num_words=args.num_words, video_dir=root_dir, backend='lstm', seed=args.seed, out_dir=args.out_dir)
+        run_mediapipe(num_words=args.num_words, split=args.split, backend='lstm', seed=args.seed, out_dir=args.out_dir)
 
 if __name__ == '__main__':
     main()

@@ -1,9 +1,0 @@
-{
-  "timestamp": "20250811_171159",
-  "method": "mediapipe_lstm",
-  "seed": 123,
-  "num_words": 1,
-  "total": 1,
-  "correct": 0,
-  "accuracy": 0.0
-}
