@@ -1,0 +1,6 @@
+{
+  "method": "mhi_baseline",
+  "num_words": 2,
+  "train_accuracy": 0.5,
+  "test_accuracy": 0.5
+}

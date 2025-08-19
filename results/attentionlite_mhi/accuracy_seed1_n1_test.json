@@ -1,9 +1,0 @@
-{
-  "method": "attentionlite_mhi",
-  "split": "test",
-  "seed": 1,
-  "num_words": 1,
-  "total": 1,
-  "correct": 1,
-  "accuracy": 1.0
-}

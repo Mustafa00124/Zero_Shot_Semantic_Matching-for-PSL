@@ -2,53 +2,69 @@
 Unified entry point that dispatches to baseline modules. No training code here.
 
 Usage:
-  python main.py --method METHOD --num_words N [--split train|test]
+  python main.py --method METHOD --num_words N
 
 Methods:
-  - attentionlite_mhi
   - c3d
   - cnn_lstm
   - zero_shot
-  - mediapipe_transformer
-  - mediapipe_lstm
+  - semantic_zero_shot
+  - mhi_baseline
+  - mhi_fusion
+  - mhi_attention
+  - finetuned_gemini
 """
 
 import argparse
-
-from attentionlite_MHI_baseline import run_attentionlite_mhi
-from c3d_baseline import run_c3d
-from cnn_lstm_baseline import run_cnn_lstm
-from zero_shot_matching import run_zero_shot
-from Mediapipe_baseline import run_mediapipe
-
+import os
+import random
+from methods.c3d_baseline import run_c3d
+from methods.cnn_lstm_baseline import run_cnn_lstm
+from methods.Mediapipe_baseline import run_mediapipe
+from methods.MHI_baseline import run_mhi
+from methods.finetuned_gemini_baseline import run_finetuned_gemini
+from methods.zero_shot_semantic_matching import run_zero_shot_matching, run_semantic_matching
 
 def main():
-    parser = argparse.ArgumentParser(description="Unified PSL Sign Recognition Runner")
-    parser.add_argument('--method', type=str, required=True,
-                        choices=['attentionlite_mhi', 'c3d', 'cnn_lstm', 'zero_shot', 'mediapipe_transformer', 'mediapipe_lstm'],
-                        help='Method to run')
-    parser.add_argument('--num_words', type=int, default=1,
-                        help='Number of samples/videos to run')
-    parser.add_argument('--split', type=str, default='train', choices=['train', 'test'],
-                        help='Choose dataset split for testing: train -> Words_train, test -> Words_test')
-    parser.add_argument('--seed', type=int, default=42)
-    parser.add_argument('--out_dir', type=str, default='results')
+    parser = argparse.ArgumentParser(description='Run PSL video classification baselines')
+    parser.add_argument('--method', 
+                       choices=['c3d', 'cnn_lstm', 'mediapipe', 'mhi_baseline', 'mhi_fusion', 'mhi_attention', 
+                               'finetuned_gemini', 'zero_shot', 'semantic_zero_shot'],
+                       required=True,
+                       help='Baseline method to run')
+    parser.add_argument('--num_words', type=int, default=1, help='Number of words to test')
+    parser.add_argument('--seed', type=int, default=42, help='Random seed for reproducibility')
 
     args = parser.parse_args()
-
-    if args.method == 'attentionlite_mhi':
-        run_attentionlite_mhi(num_words=args.num_words, split=args.split, seed=args.seed, out_dir=args.out_dir)
-    elif args.method == 'c3d':
-        run_c3d(num_words=args.num_words, split=args.split, seed=args.seed, out_dir=args.out_dir)
+    
+    # Create output directory
+    out_dir = "results"
+    os.makedirs(out_dir, exist_ok=True)
+    
+    # Set random seed
+    random.seed(args.seed)
+    
+    if args.method == 'c3d':
+        run_c3d(num_words=args.num_words, seed=args.seed, out_dir=out_dir)
     elif args.method == 'cnn_lstm':
-        run_cnn_lstm(num_words=args.num_words, split=args.split, seed=args.seed, out_dir=args.out_dir)
+        run_cnn_lstm(num_words=args.num_words, seed=args.seed, out_dir=out_dir)
+    elif args.method == 'mediapipe':
+        run_mediapipe(num_words=args.num_words, seed=args.seed, out_dir=out_dir)
+    elif args.method == 'mhi_baseline':
+        run_mhi(num_words=args.num_words, mode="baseline", seed=args.seed, out_dir=out_dir)
+    elif args.method == 'mhi_fusion':
+        run_mhi(num_words=args.num_words, mode="fusion", seed=args.seed, out_dir=out_dir)
+    elif args.method == 'mhi_attention':
+        run_mhi(num_words=args.num_words, mode="attention", seed=args.seed, out_dir=out_dir)
+    elif args.method == 'finetuned_gemini':
+        run_finetuned_gemini(num_words=args.num_words, seed=args.seed, out_dir=out_dir)
     elif args.method == 'zero_shot':
-        run_zero_shot(num_words=args.num_words, split=args.split, seed=args.seed, out_dir=args.out_dir)
-    elif args.method == 'mediapipe_transformer':
-        run_mediapipe(num_words=args.num_words, split=args.split, backend='transformer', seed=args.seed, out_dir=args.out_dir)
-    elif args.method == 'mediapipe_lstm':
-        run_mediapipe(num_words=args.num_words, split=args.split, backend='lstm', seed=args.seed, out_dir=args.out_dir)
+        run_zero_shot_matching(num_words=args.num_words, seed=args.seed, out_dir=out_dir)
+    elif args.method == 'semantic_zero_shot':
+        run_semantic_matching(num_words=args.num_words, seed=args.seed, out_dir=out_dir)
+    else:
+        print(f"Unknown method: {args.method}")
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
 
