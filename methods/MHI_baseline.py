@@ -14,6 +14,7 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, models
 from typing import List, Tuple, Optional
 import math
+import torch.optim as optim
 
 # ========== Configuration ==========
 VIDEO_DIR = "data/Words_train"
@@ -324,8 +325,9 @@ class MHIAttentionModel(nn.Module):
         # Min-max normalization
         attention_map = (attention_map - attention_map.min()) / (attention_map.max() - attention_map.min() + 1e-8)
         
-        # For now, just return the I3D prediction (simplified attention mechanism)
-        # In a full implementation, you'd modify the I3D forward pass to use the attention map
+        # For now, use a simplified approach: just return the I3D prediction
+        # The attention map is computed but not yet fully integrated
+        # This ensures the model works while we can improve the attention mechanism later
         
         return self.i3d(video)
 
@@ -362,7 +364,7 @@ def _remap_subset(samples):
     return new_samples, next_idx
 
 # ========== Main Function ==========
-def run_mhi(num_words=1, mode="baseline", seed: int = 42, out_dir: str = "results"):
+def run_mhi(num_words=1, mode="baseline", seed: int = 42, epochs: int = 20):
     """Run MHI baseline with specified mode: attention, fusion, or baseline (plain I3D)."""
     # Test on both train and test sets
     train_root = "data/Words_train"
@@ -409,7 +411,7 @@ def run_mhi(num_words=1, mode="baseline", seed: int = 42, out_dir: str = "result
             return clip_tensors, mhi_tensor, y
 
     train_subset = _Subset(train_dataset, subset_samples)
-    train_loader = DataLoader(train_subset, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
+    train_loader = DataLoader(train_subset, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
     
     # Test on test set
     test_dataset = VideoISLRDataset(test_root, clip_len=MAX_FRAMES, size=FRAME_SIZE)
@@ -429,6 +431,43 @@ def run_mhi(num_words=1, mode="baseline", seed: int = 42, out_dir: str = "result
     else:  # baseline
         model = I3D(num_classes).to(DEVICE)
 
+    # Training setup
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    
+    # Training loop
+    print(f"Training MHI-{mode} model for {epochs} epochs...")
+    for epoch in range(epochs):
+        model.train()
+        total_loss = 0
+        correct = 0
+        total = 0
+        
+        for video, mhi, y in train_loader:
+            video = video.to(DEVICE)
+            mhi = mhi.to(DEVICE)
+            y = torch.tensor(y).to(DEVICE)
+            
+            optimizer.zero_grad()
+            
+            if mode == "baseline":
+                logits = model(video)
+            else:
+                logits = model(video, mhi)
+            
+            loss = criterion(logits, y)
+            loss.backward()
+            optimizer.step()
+            
+            total_loss += loss.item()
+            pred = logits.argmax(1)
+            correct += (pred == y).sum().item()
+            total += y.size(0)
+        
+        if (epoch + 1) % 5 == 0:
+            train_acc = correct / total if total > 0 else 0.0
+            print(f"Epoch {epoch+1}/{epochs}, Loss: {total_loss/total:.4f}, Train Acc: {train_acc:.3f}")
+    
     model.eval()
     
     # Test on training set
@@ -473,21 +512,14 @@ def run_mhi(num_words=1, mode="baseline", seed: int = 42, out_dir: str = "result
     
     print(f"MHI-{mode} accuracy on {num_words} words: Train={train_acc:.3f}, Test={test_acc:.3f}")
 
-    # Save results in consistent format
-    method_dir = os.path.join(out_dir, method_name)
-    os.makedirs(method_dir, exist_ok=True)
-    out_path = os.path.join(method_dir, f"accuracy_seed{seed}_n{num_words}.json")
-    
-    with open(out_path, 'w') as f:
-        json.dump({
-            "method": method_name,
-            "num_words": num_words,
-            "train_accuracy": train_acc,
-            "test_accuracy": test_acc
-        }, f, indent=2)
-    
-    print(f"Saved results -> {out_path}")
-    return {"train_accuracy": train_acc, "test_accuracy": test_acc}
+    # Return results for main.py to handle
+    return {
+        "method": method_name,
+        "num_words": num_words,
+        "train_accuracy": train_acc,
+        "test_accuracy": test_acc,
+        "epochs": epochs
+    }
 
 if __name__ == "__main__":
     import argparse
@@ -495,7 +527,7 @@ if __name__ == "__main__":
     ap.add_argument("--num_words", type=int, default=1)
     ap.add_argument("--mode", type=str, choices=["attention", "fusion", "baseline"], default="baseline")
     ap.add_argument("--seed", type=int, default=42)
-    ap.add_argument("--out_dir", type=str, default="results")
+    ap.add_argument("--epochs", type=int, default=20)
     args = ap.parse_args()
     
-    run_mhi(num_words=args.num_words, mode=args.mode, seed=args.seed, out_dir=args.out_dir)
+    run_mhi(num_words=args.num_words, mode=args.mode, seed=args.seed, epochs=args.epochs)

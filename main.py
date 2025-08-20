@@ -18,6 +18,7 @@ Methods:
 import argparse
 import os
 import random
+import json
 from methods.c3d_baseline import run_c3d
 from methods.cnn_lstm_baseline import run_cnn_lstm
 from methods.Mediapipe_baseline import run_mediapipe
@@ -26,44 +27,77 @@ from methods.finetuned_gemini_baseline import run_finetuned_gemini
 from methods.zero_shot_semantic_matching import run_zero_shot_matching, run_semantic_matching
 
 def main():
-    parser = argparse.ArgumentParser(description='Run PSL video classification baselines')
-    parser.add_argument('--method', 
-                       choices=['c3d', 'cnn_lstm', 'mediapipe', 'mhi_baseline', 'mhi_fusion', 'mhi_attention', 
-                               'finetuned_gemini', 'zero_shot', 'semantic_zero_shot'],
-                       required=True,
-                       help='Baseline method to run')
+    parser = argparse.ArgumentParser(description='Run PSL baseline methods')
+    parser.add_argument('--method', type=str, required=True,
+                       choices=['c3d', 'cnn_lstm', 'mediapipe', 'mhi_baseline', 'mhi_fusion', 'mhi_attention', 'finetuned_gemini', 'zero_shot', 'semantic_shot'],
+                       help='Method to run')
     parser.add_argument('--num_words', type=int, default=1, help='Number of words to test')
-    parser.add_argument('--seed', type=int, default=42, help='Random seed for reproducibility')
-
+    parser.add_argument('--seed', type=int, default=42, help='Random seed')
+    parser.add_argument('--epochs', type=int, default=20, help='Number of training epochs')
+    parser.add_argument('--out_dir', type=str, default='results', help='Output directory')
+    
     args = parser.parse_args()
     
     # Create output directory
-    out_dir = "results"
-    os.makedirs(out_dir, exist_ok=True)
+    os.makedirs(args.out_dir, exist_ok=True)
     
     # Set random seed
     random.seed(args.seed)
     
+    # Run the selected method
     if args.method == 'c3d':
-        run_c3d(num_words=args.num_words, seed=args.seed, out_dir=out_dir)
+        results = run_c3d(num_words=args.num_words, seed=args.seed, epochs=args.epochs)
     elif args.method == 'cnn_lstm':
-        run_cnn_lstm(num_words=args.num_words, seed=args.seed, out_dir=out_dir)
+        results = run_cnn_lstm(num_words=args.num_words, seed=args.seed, epochs=args.epochs)
     elif args.method == 'mediapipe':
-        run_mediapipe(num_words=args.num_words, seed=args.seed, out_dir=out_dir)
+        results = run_mediapipe(num_words=args.num_words, seed=args.seed)
     elif args.method == 'mhi_baseline':
-        run_mhi(num_words=args.num_words, mode="baseline", seed=args.seed, out_dir=out_dir)
+        results = run_mhi(num_words=args.num_words, mode='baseline', seed=args.seed, epochs=args.epochs)
     elif args.method == 'mhi_fusion':
-        run_mhi(num_words=args.num_words, mode="fusion", seed=args.seed, out_dir=out_dir)
+        results = run_mhi(num_words=args.num_words, mode='fusion', seed=args.seed, epochs=args.epochs)
     elif args.method == 'mhi_attention':
-        run_mhi(num_words=args.num_words, mode="attention", seed=args.seed, out_dir=out_dir)
+        results = run_mhi(num_words=args.num_words, mode='attention', seed=args.seed, epochs=args.epochs)
     elif args.method == 'finetuned_gemini':
-        run_finetuned_gemini(num_words=args.num_words, seed=args.seed, out_dir=out_dir)
+        results = run_finetuned_gemini(num_words=args.num_words, seed=args.seed)
     elif args.method == 'zero_shot':
-        run_zero_shot_matching(num_words=args.num_words, seed=args.seed, out_dir=out_dir)
-    elif args.method == 'semantic_zero_shot':
-        run_semantic_matching(num_words=args.num_words, seed=args.seed, out_dir=out_dir)
+        results = run_zero_shot_matching(num_words=args.num_words, seed=args.seed)
+    elif args.method == 'semantic_shot':
+        results = run_semantic_matching(num_words=args.num_words, seed=args.seed)
     else:
         print(f"Unknown method: {args.method}")
+        return
+    
+    # Save results consistently
+    if results:
+        method_name = results.get('method', args.method)
+        method_dir = os.path.join(args.out_dir, method_name)
+        os.makedirs(method_dir, exist_ok=True)
+        
+        out_path = os.path.join(method_dir, f"accuracy_seed{args.seed}_n{args.num_words}.json")
+        
+        # Ensure consistent output format
+        output_data = {
+            "method": method_name,
+            "num_words": args.num_words,
+            "train_accuracy": results.get('train_accuracy', 0.0),
+            "test_accuracy": results.get('test_accuracy', 0.0)
+        }
+        
+        # Add epochs if available
+        if 'epochs' in results:
+            output_data["epochs"] = results['epochs']
+        
+        # Add any additional fields from results
+        for key, value in results.items():
+            if key not in output_data:
+                output_data[key] = value
+        
+        with open(out_path, 'w') as f:
+            json.dump(output_data, f, indent=2)
+        
+        print(f"Saved results -> {out_path}")
+    else:
+        print("No results returned from method")
 
 if __name__ == "__main__":
     main()

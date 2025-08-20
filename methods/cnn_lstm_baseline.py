@@ -118,7 +118,7 @@ def _remap_subset(samples):
     return remapped, next_id
 
 
-def run_cnn_lstm(num_words=1, seed: int = 42, out_dir: str = "results"):
+def run_cnn_lstm(num_words=1, seed: int = 42, epochs: int = 20):
     # Test on both train and test sets
     train_root = "data/Words_train"
     test_root = "data/Words_test"
@@ -149,10 +149,42 @@ def run_cnn_lstm(num_words=1, seed: int = 42, out_dir: str = "results"):
             return clip, y
 
     train_subset = _Subset(train_ds, subset)
-    train_loader = DataLoader(train_subset, batch_size=1, shuffle=False, num_workers=0)
+    train_loader = DataLoader(train_subset, batch_size=1, shuffle=True, num_workers=0)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = CNNLSTM(num_classes=num_classes).to(device)
+    
+    # Training setup
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    
+    # Training loop
+    print(f"Training CNN-LSTM model for {epochs} epochs...")
+    for epoch in range(epochs):
+        model.train()
+        total_loss = 0
+        correct = 0
+        total = 0
+        
+        for clips, y in train_loader:
+            clips = clips.to(device)
+            y = torch.tensor(y).to(device)
+            
+            optimizer.zero_grad()
+            logits = model(clips)
+            loss = criterion(logits, y)
+            loss.backward()
+            optimizer.step()
+            
+            total_loss += loss.item()
+            pred = logits.argmax(1)
+            correct += (pred == y).sum().item()
+            total += y.size(0)
+        
+        if (epoch + 1) % 5 == 0:
+            train_acc = correct / total if total > 0 else 0.0
+            print(f"Epoch {epoch+1}/{epochs}, Loss: {total_loss/total:.4f}, Train Acc: {train_acc:.3f}")
+    
     model.eval()
     
     # Test on training set
@@ -185,19 +217,14 @@ def run_cnn_lstm(num_words=1, seed: int = 42, out_dir: str = "results"):
     
     print(f"CNN-LSTM accuracy on {num_words} words: Train={train_acc:.3f}, Test={test_acc:.3f}")
 
-    # Save results
-    method_dir = os.path.join(out_dir, "cnn_lstm")
-    os.makedirs(method_dir, exist_ok=True)
-    out_path = os.path.join(method_dir, f"accuracy_seed{seed}_n{num_words}.json")
-    with open(out_path, 'w') as f:
-        json.dump({
-            "method": "cnn_lstm",
-            "num_words": num_words,
-            "train_accuracy": train_acc,
-            "test_accuracy": test_acc
-        }, f, indent=2)
-    print(f"Saved results -> {out_path}")
-    return {"train_accuracy": train_acc, "test_accuracy": test_acc}
+    # Return results for main.py to handle
+    return {
+        "method": "cnn_lstm",
+        "num_words": num_words,
+        "train_accuracy": train_acc,
+        "test_accuracy": test_acc,
+        "epochs": epochs
+    }
 
 def train_one_epoch(model, loader, opt, device):
     model.train()
@@ -221,6 +248,6 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--num_words", type=int, default=1)
     ap.add_argument("--seed", type=int, default=42)
-    ap.add_argument("--out_dir", type=str, default="results")
+    ap.add_argument("--epochs", type=int, default=20)
     args = ap.parse_args()
-    run_cnn_lstm(num_words=args.num_words, seed=args.seed, out_dir=args.out_dir)
+    run_cnn_lstm(num_words=args.num_words, seed=args.seed, epochs=args.epochs)
