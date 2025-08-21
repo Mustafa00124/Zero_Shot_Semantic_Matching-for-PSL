@@ -504,28 +504,28 @@ def test_continuous_signing(model, video_path, vocab):
     return sentence
 
 # ========== Main ==========
-def run_mediapipe(num_words=1, backend="transformer", seed: int = 42, out_dir: str = "results"):
-    # Test on both train and test sets
+def run_mediapipe(num_words=1, backend="transformer", seed: int = 42, epochs: int = 20, batch_size: int = 1, out_dir: str = "results"):
+    """Run MediaPipe baseline with specified backend: transformer or lstm."""
+    import json
+    import time
+    
     train_root = "data/Words_train"
     test_root = "data/Words_test"
     
-    # Test on training set
+    # Load training dataset - ALL words from Words_train
     train_dataset = SignDataset(train_root)
     if len(train_dataset) == 0:
         print(f"No .mov files found in {train_root}")
         return
 
-    # build a small subset loader with seed
-    import random, json, time
-    rng = random.Random(seed)
-    indices = list(range(len(train_dataset)))
-    rng.shuffle(indices)
-    indices = indices[:max(1, num_words)]
-    subset = torch.utils.data.Subset(train_dataset, indices)
-    train_loader = DataLoader(subset, batch_size=1, shuffle=False)
-
+    print(f"Training dataset: {len(train_dataset)} videos, {len(set(train_dataset.encoded_labels))} classes")
+    print(f"Classes: {list(set(train_dataset.encoded_labels))}")
+    
+    # Create training loader with ALL data
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
     num_classes = len(set(train_dataset.encoded_labels))
 
+    # Create model
     if backend.lower() == "lstm":
         model = SignLSTM(input_dim=KEYPOINT_DIM, hidden_dim=MODEL_DIM, num_classes=num_classes).to(DEVICE)
     else:
@@ -541,51 +541,116 @@ def run_mediapipe(num_words=1, backend="transformer", seed: int = 42, out_dir: s
             dropout_rate=0.1
         ).to(DEVICE)
 
+    # Training setup
+    criterion = torch.nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    
+    # Training loop
+    print(f"Training MediaPipe-{backend} model for {epochs} epochs on {num_classes} classes...")
+    for epoch in range(epochs):
+        model.train()
+        total_loss = 0
+        correct = 0
+        total = 0
+        
+        # Progress bar for each epoch
+        with tqdm(train_loader, desc=f"Epoch {epoch+1}/{epochs}") as pbar:
+            for x, y in pbar:
+                x = x.to(DEVICE)
+                y = y.to(DEVICE)
+                
+                optimizer.zero_grad()
+                logits = model(x)
+                loss = criterion(logits, y)
+                loss.backward()
+                optimizer.step()
+                
+                total_loss += loss.item()
+                pred = logits.argmax(1)
+                correct += (pred == y).sum().item()
+                total += y.size(0)
+                
+                # Update progress bar with loss
+                pbar.set_postfix({
+                    'Loss': f'{total_loss/total:.4f}',
+                    'Acc': f'{correct/total:.3f}' if total > 0 else '0.000'
+                })
+        
+        # Print epoch summary
+        epoch_loss = total_loss / total if total > 0 else 0.0
+        epoch_acc = correct / total if total > 0 else 0.0
+        print(f"Epoch {epoch+1}/{epochs}: Loss={epoch_loss:.4f}, Train Acc={epoch_acc:.3f}")
+    
     model.eval()
     
     # Test on training set
-    train_correct=0; train_total=0
+    print("Evaluating on training set...")
+    train_correct = 0
+    train_total = 0
     with torch.no_grad():
         for x, y in train_loader:
-            x = x.to(DEVICE); y = y.to(DEVICE)
+            x = x.to(DEVICE)
+            y = y.to(DEVICE)
             logits = model(x)
             pred = logits.argmax(1)
-            train_correct += (pred==y).sum().item(); train_total += y.size(0)
-    train_acc = (train_correct/train_total) if train_total>0 else 0.0
+            train_correct += (pred == y).sum().item()
+            train_total += y.size(0)
     
-    # Test on test set
+    train_acc = (train_correct / train_total) if train_total > 0 else 0.0
+    
+    # Test on test set (different videos, same classes)
+    print("Evaluating on test set...")
     test_dataset = SignDataset(test_root)
     if len(test_dataset) == 0:
         print(f"No .mov files found in {test_root}")
         return
-        
-    test_subset = torch.utils.data.Subset(test_dataset, indices)
-    test_loader = DataLoader(test_subset, batch_size=1, shuffle=False)
     
-    test_correct=0; test_total=0
+    # Important: Use the same class mapping as training
+    test_dataset.encoder = train_dataset.encoder
+    test_dataset.encoded_labels = train_dataset.encoded_labels
+    
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=0)
+    
+    test_correct = 0
+    test_total = 0
     with torch.no_grad():
         for x, y in test_loader:
-            x = x.to(DEVICE); y = y.to(DEVICE)
+            x = x.to(DEVICE)
+            y = y.to(DEVICE)
             logits = model(x)
             pred = logits.argmax(1)
-            test_correct += (pred==y).sum().item(); test_total += y.size(0)
-    test_acc = (test_correct/test_total) if test_total>0 else 0.0
+            test_correct += (pred == y).sum().item()
+            test_total += y.size(0)
     
-    print(f"Mediapipe-{backend} accuracy on {num_words} words: Train={train_acc:.3f}, Test={test_acc:.3f}")
+    test_acc = (test_correct / test_total) if test_total > 0 else 0.0
+    
+    print(f"\nFinal Results:")
+    print(f"Training Accuracy: {train_acc:.3f} ({train_correct}/{train_total})")
+    print(f"Test Accuracy: {test_acc:.3f} ({test_correct}/{test_total})")
+    print(f"Classes: {num_classes}")
 
     # Save results
     method_dir = os.path.join(out_dir, f"mediapipe_{backend}")
     os.makedirs(method_dir, exist_ok=True)
-    out_path = os.path.join(method_dir, f"accuracy_seed{seed}_n{num_words}.json")
+    out_path = os.path.join(method_dir, f"accuracy_seed{seed}_n{num_classes}.json")
     with open(out_path, 'w') as f:
         json.dump({
             "method": f"mediapipe_{backend}",
-            "num_words": num_words,
+            "num_words": num_classes,  # Use actual number of classes
             "train_accuracy": train_acc,
-            "test_accuracy": test_acc
+            "test_accuracy": test_acc,
+            "epochs": epochs
         }, f, indent=2)
     print(f"Saved results -> {out_path}")
-    return {"train_accuracy": train_acc, "test_accuracy": test_acc}
+    
+    # Return results for main.py to handle
+    return {
+        "method": f"mediapipe_{backend}",
+        "num_words": num_classes,
+        "train_accuracy": train_acc,
+        "test_accuracy": test_acc,
+        "epochs": epochs
+    }
 
 
 if __name__ == "__main__":

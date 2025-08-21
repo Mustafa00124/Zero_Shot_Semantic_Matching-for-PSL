@@ -15,12 +15,14 @@ from torchvision import transforms, models
 from typing import List, Tuple, Optional
 import math
 import torch.optim as optim
+from device_utils import get_best_device, to_device, device_info
+from tqdm import tqdm
 
 # ========== Configuration ==========
 VIDEO_DIR = "data/Words_train"
 MAX_FRAMES = 32
 FRAME_SIZE = 224
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# Device will be set dynamically in run_mhi function
 BATCH_SIZE = 1
 NUM_WORKERS = 0
 
@@ -297,10 +299,10 @@ class MHIResNet(nn.Module):
 
 class MHIAttentionModel(nn.Module):
     """MHI-Attention variant: MHI provides attention map for I3D features."""
-    def __init__(self, num_classes):
+    def __init__(self, num_classes, use_pretrained=True):
         super().__init__()
         self.i3d = I3D(num_classes)
-        self.mhi_resnet = MHIResNet(num_classes)
+        self.mhi_resnet = MHIResNet(num_classes, pretrained=use_pretrained)
         
         # Attention mechanism - dynamically determine input channels
         self.attention_proj = None  # Will be set dynamically
@@ -333,10 +335,10 @@ class MHIAttentionModel(nn.Module):
 
 class MHIFusionModel(nn.Module):
     """Late-fusion variant: combine logits from I3D and MHI-ResNet."""
-    def __init__(self, num_classes, fusion_weights=FUSION_WEIGHTS):
+    def __init__(self, num_classes, fusion_weights=FUSION_WEIGHTS, use_pretrained=True):
         super().__init__()
         self.i3d = I3D(num_classes)
-        self.mhi_resnet = MHIResNet(num_classes)
+        self.mhi_resnet = MHIResNet(num_classes, pretrained=use_pretrained)
         self.fusion_weights = fusion_weights
         
     def forward(self, video, mhi):
@@ -364,9 +366,8 @@ def _remap_subset(samples):
     return new_samples, next_idx
 
 # ========== Main Function ==========
-def run_mhi(num_words=1, mode="baseline", seed: int = 42, epochs: int = 20):
+def run_mhi(num_words=1, mode="baseline", seed: int = 42, epochs: int = 20, batch_size: int = 1, use_pretrained=True):
     """Run MHI baseline with specified mode: attention, fusion, or baseline (plain I3D)."""
-    # Test on both train and test sets
     train_root = "data/Words_train"
     test_root = "data/Words_test"
     
@@ -378,95 +379,88 @@ def run_mhi(num_words=1, mode="baseline", seed: int = 42, epochs: int = 20):
     else:  # baseline
         method_name = "mhi_baseline"
     
-    # Test on training set
+    # Load training dataset - ALL words from Words_train
     train_dataset = VideoISLRDataset(train_root, clip_len=MAX_FRAMES, size=FRAME_SIZE)
     if len(train_dataset) == 0:
         print(f"No .mov files found in {train_root}")
         return
     
-    # Select subset by seed
-    rng = random.Random(seed)
-    indices = list(range(len(train_dataset)))
-    rng.shuffle(indices)
-    indices = indices[:max(1, num_words)]
-    subset_samples = [train_dataset.samples[i] for i in indices]
-    subset_samples, num_classes = _remap_subset(subset_samples)
+    print(f"Training dataset: {len(train_dataset)} videos, {len(train_dataset.classes)} classes")
+    print(f"Classes: {train_dataset.classes}")
     
-    # Build subset dataset
-    class _Subset(Dataset):
-        def __init__(self, parent, samples):
-            self.parent = parent
-            self.samples = samples
-        def __len__(self):
-            return len(self.samples)
-        def __getitem__(self, i):
-            path, y = self.samples[i]
-            frames = self.parent._read_frames(path)
-            idxs = self.parent._sample_indices(len(frames))
-            clip_frames = [frames[j] for j in idxs]
-            clip_tensors = torch.stack([self.parent.transform(frame) for frame in clip_frames], dim=0)  # [T, C, H, W]
-            clip_tensors = clip_tensors.permute(1, 0, 2, 3)  # [C, T, H, W]
-            rgb_mhi = compute_rgb_mhi(frames)
-            mhi_tensor = self.parent.transform(rgb_mhi)
-            return clip_tensors, mhi_tensor, y
-
-    train_subset = _Subset(train_dataset, subset_samples)
-    train_loader = DataLoader(train_subset, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
+    # Create training loader with ALL data
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=NUM_WORKERS)
+    num_classes = len(train_dataset.classes)
     
-    # Test on test set
+    # Load test dataset (different videos, same classes)
     test_dataset = VideoISLRDataset(test_root, clip_len=MAX_FRAMES, size=FRAME_SIZE)
     if len(test_dataset) == 0:
         print(f"No .mov files found in {test_root}")
         return
     
-    # Use same subset for test
-    test_subset = _Subset(test_dataset, subset_samples)
-    test_loader = DataLoader(test_subset, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
+    # Important: Use the same class mapping as training
+    test_dataset.class_to_idx = train_dataset.class_to_idx
+    test_dataset.classes = train_dataset.classes
+    
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=NUM_WORKERS)
 
+    # Get best available device (CUDA > MPS > CPU)
+    device = get_best_device(method_name=method_name)
+    device_info()
+    
     # Create model
     if mode == "attention":
-        model = MHIAttentionModel(num_classes).to(DEVICE)
+        model = MHIAttentionModel(num_classes, use_pretrained=use_pretrained).to(device)
     elif mode == "fusion":
-        model = MHIFusionModel(num_classes).to(DEVICE)
+        model = MHIFusionModel(num_classes, use_pretrained=use_pretrained).to(device)
     else:  # baseline
-        model = I3D(num_classes).to(DEVICE)
+        model = I3D(num_classes).to(device)
 
     # Training setup
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
     
     # Training loop
-    print(f"Training MHI-{mode} model for {epochs} epochs...")
+    print(f"Training MHI-{mode} model for {epochs} epochs on {num_classes} classes...")
     for epoch in range(epochs):
         model.train()
         total_loss = 0
         correct = 0
         total = 0
         
-        for video, mhi, y in train_loader:
-            video = video.to(DEVICE)
-            mhi = mhi.to(DEVICE)
-            y = torch.tensor(y).to(DEVICE)
-            
-            optimizer.zero_grad()
-            
-            if mode == "baseline":
-                logits = model(video)
-            else:
-                logits = model(video, mhi)
-            
-            loss = criterion(logits, y)
-            loss.backward()
-            optimizer.step()
-            
-            total_loss += loss.item()
-            pred = logits.argmax(1)
-            correct += (pred == y).sum().item()
-            total += y.size(0)
+        # Progress bar for each epoch
+        with tqdm(train_loader, desc=f"Epoch {epoch+1}/{epochs}") as pbar:
+            for video, mhi, y in pbar:
+                video = to_device(video, device)
+                mhi = to_device(mhi, device)
+                y = to_device(torch.tensor(y), device)
+                
+                optimizer.zero_grad()
+                
+                if mode == "baseline":
+                    logits = model(video)
+                else:
+                    logits = model(video, mhi)
+                
+                loss = criterion(logits, y)
+                loss.backward()
+                optimizer.step()
+                
+                total_loss += loss.item()
+                pred = logits.argmax(1)
+                correct += (pred == y).sum().item()
+                total += y.size(0)
+                
+                # Update progress bar with loss
+                pbar.set_postfix({
+                    'Loss': f'{total_loss/total:.4f}',
+                    'Acc': f'{correct/total:.3f}' if total > 0 else '0.000'
+                })
         
-        if (epoch + 1) % 5 == 0:
-            train_acc = correct / total if total > 0 else 0.0
-            print(f"Epoch {epoch+1}/{epochs}, Loss: {total_loss/total:.4f}, Train Acc: {train_acc:.3f}")
+        # Print epoch summary
+        epoch_loss = total_loss / total if total > 0 else 0.0
+        epoch_acc = correct / total if total > 0 else 0.0
+        print(f"Epoch {epoch+1}/{epochs}: Loss={epoch_loss:.4f}, Train Acc={epoch_acc:.3f}")
     
     model.eval()
     
@@ -475,9 +469,9 @@ def run_mhi(num_words=1, mode="baseline", seed: int = 42, epochs: int = 20):
     train_total = 0
     with torch.no_grad():
         for video, mhi, y in train_loader:
-            video = video.to(DEVICE)
-            mhi = mhi.to(DEVICE)
-            y = torch.tensor(y).to(DEVICE)
+            video = to_device(video, device)
+            mhi = to_device(mhi, device)
+            y = to_device(torch.tensor(y), device)
             
             if mode == "baseline":
                 logits = model(video)
@@ -490,14 +484,15 @@ def run_mhi(num_words=1, mode="baseline", seed: int = 42, epochs: int = 20):
     
     train_acc = (train_correct / train_total) if train_total > 0 else 0.0
     
-    # Test on test set
+    # Test on test set (different videos, same classes)
+    print("Evaluating on test set...")
     test_correct = 0
     test_total = 0
     with torch.no_grad():
         for video, mhi, y in test_loader:
-            video = video.to(DEVICE)
-            mhi = mhi.to(DEVICE)
-            y = torch.tensor(y).to(DEVICE)
+            video = to_device(video, device)
+            mhi = to_device(mhi, device)
+            y = to_device(torch.tensor(y), device)
             
             if mode == "baseline":
                 logits = model(video)
@@ -510,12 +505,15 @@ def run_mhi(num_words=1, mode="baseline", seed: int = 42, epochs: int = 20):
     
     test_acc = (test_correct / test_total) if test_total > 0 else 0.0
     
-    print(f"MHI-{mode} accuracy on {num_words} words: Train={train_acc:.3f}, Test={test_acc:.3f}")
+    print(f"\nFinal Results:")
+    print(f"Training Accuracy: {train_acc:.3f} ({train_correct}/{train_total})")
+    print(f"Test Accuracy: {test_acc:.3f} ({test_correct}/{test_total})")
+    print(f"Classes: {num_classes}")
 
     # Return results for main.py to handle
     return {
         "method": method_name,
-        "num_words": num_words,
+        "num_words": num_classes,  # Use actual number of classes
         "train_accuracy": train_acc,
         "test_accuracy": test_acc,
         "epochs": epochs
@@ -528,6 +526,7 @@ if __name__ == "__main__":
     ap.add_argument("--mode", type=str, choices=["attention", "fusion", "baseline"], default="baseline")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--epochs", type=int, default=20)
+    ap.add_argument("--batch_size", type=int, default=1)
     args = ap.parse_args()
     
-    run_mhi(num_words=args.num_words, mode=args.mode, seed=args.seed, epochs=args.epochs)
+    run_mhi(num_words=args.num_words, mode=args.mode, seed=args.seed, epochs=args.epochs, batch_size=args.batch_size)

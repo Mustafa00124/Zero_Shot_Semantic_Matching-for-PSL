@@ -18,14 +18,19 @@ load_dotenv()
 # -------------------------
 # Paths / config
 # -------------------------
-video_dir_train = os.getenv("VIDEO_DIR_TRAIN", "Words_train")
-video_dir_test  = os.getenv("VIDEO_DIR_TEST", "Words_test")
+# Force use of local data paths, ignore environment variables
+video_dir_train = "data/Words_train"
+video_dir_test  = "data/Words_test"
 gcs_prefix_train = os.getenv("GCS_PREFIX_TRAIN", "gs://psl-train-clipped/train/")
 gcs_prefix_test  = os.getenv("GCS_PREFIX_TEST", "gs://psl-train-clipped/train/")
-train_desc_file  = os.getenv("TRAIN_DESC_FILE", "descriptions_train-clipped-32.txt")
+train_desc_file  = "outputs/descriptions_train-clipped-32.txt"
 
-OUT_TEST_DESC_FILE = os.getenv("OUT_TEST_DESC_FILE", "descriptions_test_2.txt")
-OUT_PRED_FILE      = os.getenv("OUT_PRED_FILE", "predictions_train_semanticMatching-clipped-32.txt")
+# Output file paths - separate files for each mode
+OUTPUTS_DIR = "outputs"
+ZERO_SHOT_TEST_DESC_FILE = "outputs/zero_shot_descriptions.txt"
+ZERO_SHOT_PRED_FILE = "outputs/zero_shot_predictions.txt"
+SEMANTIC_TEST_DESC_FILE = "outputs/semantic_descriptions.txt"
+SEMANTIC_PRED_FILE = "outputs/semantic_predictions.txt"
 
 # -------------------------
 # Helpers
@@ -129,37 +134,6 @@ def append_line(path: str, line: str):
     with open(path, "a", encoding="utf-8") as f:
         f.write(line.rstrip() + "\n")
 
-def save_results_json(actual_words, predicted_words, num_words, method_name, out_dir="results"):
-    """Save results in standardized JSON format"""
-    if len(actual_words) != len(predicted_words):
-        print("[ERROR] Mismatch between actual and predicted words")
-        return
-    
-    # Calculate accuracies
-    train_correct = sum(1 for a, p in zip(actual_words, predicted_words) if a.lower() == p.lower())
-    train_accuracy = train_correct / len(actual_words) if actual_words else 0.0
-    
-    # For both modes, we only have training data, so test accuracy is same as train
-    test_accuracy = train_accuracy
-    
-    results = {
-        "method": method_name,
-        "num_words": num_words,
-        "train_accuracy": train_accuracy,
-        "test_accuracy": test_accuracy
-    }
-    
-    # Ensure results directory exists
-    os.makedirs(out_dir, exist_ok=True)
-    method_dir = os.path.join(out_dir, method_name)
-    os.makedirs(method_dir, exist_ok=True)
-    
-    out_path = os.path.join(method_dir, f"accuracy_n{num_words}.json")
-    with open(out_path, 'w', encoding='utf-8') as f:
-        json.dump(results, f, indent=2, ensure_ascii=False)
-    
-    print(f"Results saved to: {out_path}")
-    return {"train_accuracy": train_accuracy, "test_accuracy": test_accuracy}
 
 # -------------------------
 # Semantic Search Helpers
@@ -278,10 +252,12 @@ def run_zero_shot_mode(allowed_words, train_descs, client, model):
     allowed_words_str = ", ".join(f'"{w}"' for w in allowed_words)
 
     # Clear/initialize output files
-    print(f"[DEBUG] Initializing output files: {OUT_TEST_DESC_FILE}, {OUT_PRED_FILE}")
-    open(OUT_TEST_DESC_FILE, "w", encoding="utf-8").close()
-    open(OUT_PRED_FILE, "w", encoding="utf-8").close()
-    append_line(OUT_PRED_FILE, "ActualWord\tPredictedWord\tConfidence\tTestDescription")
+    print(f"[DEBUG] Initializing output files: {ZERO_SHOT_TEST_DESC_FILE}, {ZERO_SHOT_PRED_FILE}")
+    # Ensure outputs directory exists
+    os.makedirs(OUTPUTS_DIR, exist_ok=True)
+    open(ZERO_SHOT_TEST_DESC_FILE, "w", encoding="utf-8").close()
+    open(ZERO_SHOT_PRED_FILE, "w", encoding="utf-8").close()
+    append_line(ZERO_SHOT_PRED_FILE, "ActualWord\tPredictedWord\tConfidence\tTestDescription")
 
     # Collect results for standardized output
     actual_words = []
@@ -394,11 +370,11 @@ def run_zero_shot_mode(allowed_words, train_descs, client, model):
         print("=====================\n")
 
         # Save the test description (for auditing)
-        append_line(OUT_TEST_DESC_FILE, f"{word}: {test_desc}")
+        append_line(ZERO_SHOT_TEST_DESC_FILE, f"{word}: {test_desc}")
 
         # Save the prediction row
         short_desc = (test_desc[:140] + "…") if len(test_desc) > 140 else test_desc
-        append_line(OUT_PRED_FILE, f"{word}\t{best_guess}\t{confidence}\t{short_desc}")
+        append_line(ZERO_SHOT_PRED_FILE, f"{word}\t{best_guess}\t{confidence}\t{short_desc}")
         
         # Collect results for standardized output
         actual_words.append(word)
@@ -415,10 +391,12 @@ def run_semantic_shot_mode(allowed_words, train_descs, client, model):
     word_embeddings = create_embeddings(train_descs)
 
     # Clear/initialize output files
-    print(f"[DEBUG] Initializing output files: {OUT_TEST_DESC_FILE}, {OUT_PRED_FILE}")
-    open(OUT_TEST_DESC_FILE, "w", encoding="utf-8").close()
-    open(OUT_PRED_FILE, "w", encoding="utf-8").close()
-    append_line(OUT_PRED_FILE, "ActualWord\tPredictedWord\tConfidence\tTestDescription")
+    print(f"[DEBUG] Initializing output files: {SEMANTIC_TEST_DESC_FILE}, {SEMANTIC_PRED_FILE}")
+    # Ensure outputs directory exists
+    os.makedirs(OUTPUTS_DIR, exist_ok=True)
+    open(SEMANTIC_TEST_DESC_FILE, "w", encoding="utf-8").close()
+    open(SEMANTIC_PRED_FILE, "w", encoding="utf-8").close()
+    append_line(SEMANTIC_PRED_FILE, "ActualWord\tPredictedWord\tConfidence\tTestDescription")
 
     # Collect results for standardized output
     actual_words = []
@@ -478,7 +456,7 @@ def run_semantic_shot_mode(allowed_words, train_descs, client, model):
 
             # Step 2: Get similar descriptions
             print("\n[DEBUG] Top similar descriptions retrieved:")
-            top_matches = get_top_n_similar(initial_desc, word_embeddings, train_descs, n=5)
+            top_matches = get_top_n_similar(initial_desc, word_embeddings, train_descs, n=15)
             for matched_word in top_matches.keys():
                 print(f"  - {matched_word}")
             
@@ -523,8 +501,8 @@ def run_semantic_shot_mode(allowed_words, train_descs, client, model):
         print("=====================\n")
 
         # Save results
-        append_line(OUT_TEST_DESC_FILE, f"{word}: {test_desc}")
-        append_line(OUT_PRED_FILE, f"{word}\t{best_guess}\t{confidence}\t{initial_desc}")
+        append_line(SEMANTIC_TEST_DESC_FILE, f"{word}: {test_desc}")
+        append_line(SEMANTIC_PRED_FILE, f"{word}\t{best_guess}\t{confidence}\t{initial_desc}")
         
         # Collect results for standardized output
         actual_words.append(word)
@@ -560,14 +538,11 @@ def main():
     # Run based on mode
     if args.mode == 'zero_shot':
         actual_words, predicted_words = run_zero_shot_mode(allowed_words, train_descs, client, model)
-        method_name = "testing_2_gemini"
+        method_name = "zero_shot"
     else:  # semantic_shot
         actual_words, predicted_words = run_semantic_shot_mode(allowed_words, train_descs, client, model)
-        method_name = "zero_shot_semantic_matching"
+        method_name = "semantic_shot"
 
-    # Save results in standardized format
-    if actual_words and predicted_words:
-        save_results_json(actual_words, predicted_words, len(actual_words), method_name)
 
 def run_zero_shot_matching(num_words=1, seed: int = 42, out_dir: str = "results"):
     """Wrapper function for main.py integration"""
@@ -579,8 +554,40 @@ def run_zero_shot_matching(num_words=1, seed: int = 42, out_dir: str = "results"
     
     main()
     
-    # Return dummy results for now (actual results are saved to JSON)
-    return {"train_accuracy": 0.0, "test_accuracy": 0.0}
+    # Calculate accuracy from the output files
+    try:
+        actual_words = []
+        predicted_words = []
+        
+        # Read predictions file
+        pred_file = "outputs/zero_shot_predictions.txt"
+        if os.path.exists(pred_file):
+            with open(pred_file, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+                if len(lines) > 1:  # Skip header
+                    for line in lines[1:]:  # Skip header line
+                        if line.strip():
+                            parts = line.strip().split('\t')
+                            if len(parts) >= 2:
+                                actual_words.append(parts[0])
+                                predicted_words.append(parts[1])
+        
+        # Calculate accuracy
+        if actual_words and predicted_words and len(actual_words) == len(predicted_words):
+            correct = sum(1 for a, p in zip(actual_words, predicted_words) if a.lower() == p.lower())
+            accuracy = correct / len(actual_words) if actual_words else 0.0
+            
+            return {
+                "method": "zero_shot",
+                "num_words": len(actual_words),
+                "train_accuracy": accuracy,
+                "test_accuracy": accuracy
+            }
+    except Exception as e:
+        print(f"Error calculating accuracy: {e}")
+    
+    # Fallback if calculation fails
+    return {"method": "zero_shot", "num_words": num_words, "train_accuracy": 0.0, "test_accuracy": 0.0}
 
 def run_semantic_matching(num_words=1, seed: int = 42, out_dir: str = "results"):
     """Wrapper function for main.py integration"""
@@ -592,8 +599,40 @@ def run_semantic_matching(num_words=1, seed: int = 42, out_dir: str = "results")
     
     main()
     
-    # Return dummy results for now (actual results are saved to JSON)
-    return {"train_accuracy": 0.0, "test_accuracy": 0.0}
+    # Calculate accuracy from the output files
+    try:
+        actual_words = []
+        predicted_words = []
+        
+        # Read predictions file
+        pred_file = "outputs/semantic_predictions.txt"
+        if os.path.exists(pred_file):
+            with open(pred_file, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+                if len(lines) > 1:  # Skip header
+                    for line in lines[1:]:  # Skip header line
+                        if line.strip():
+                            parts = line.strip().split('\t')
+                            if len(parts) >= 2:
+                                actual_words.append(parts[0])
+                                predicted_words.append(parts[1])
+        
+        # Calculate accuracy
+        if actual_words and predicted_words and len(actual_words) == len(predicted_words):
+            correct = sum(1 for a, p in zip(actual_words, predicted_words) if a.lower() == p.lower())
+            accuracy = correct / len(actual_words) if actual_words else 0.0
+            
+            return {
+                "method": "semantic_shot",
+                "num_words": len(actual_words),
+                "train_accuracy": accuracy,
+                "test_accuracy": accuracy
+            }
+    except Exception as e:
+        print(f"Error calculating accuracy: {e}")
+    
+    # Fallback if calculation fails
+    return {"method": "semantic_shot", "num_words": num_words, "train_accuracy": 0.0, "test_accuracy": 0.0}
 
 if __name__ == "__main__":
     listener = threading.Thread(target=listen_for_stop, daemon=True)

@@ -14,44 +14,65 @@ This project tackles **isolated sign language recognition in low-data regimes** 
 
 ### Easiest Way to Run Experiments
 
-The simplest way to run any method is using the **batch file** (`run_code.bat`). This allows you to:
+The simplest way to run any method is using the **batch files** (`run_code.bat` for Windows or `run_code.sh` for macOS/Linux). This allows you to:
 - Test multiple methods sequentially
 - Run on different data splits (train/test)
 - Use multiple seeds for statistical validation
 
-### How to Use the Batch File
+### How to Use the Batch Files
 
+#### Windows (run_code.bat)
 1. **Open `run_code.bat`** in any text editor
 2. **Configure your experiment** by modifying these lists:
 
 ```batch
-set seed_list=1 42 123                    # Multiple seeds for robust results
-set method_list=c3d cnn_lstm zero_shot    # Choose methods to test
+set seed_list=1 2 3                   # Multiple seeds for robust results
+set method_list=c3d c3d_pretrained cnn_lstm cnn_lstm_pretrained mhi_baseline mhi_fusion mhi_attention mediapipe mediapipe_transformer mediapipe_lstm
 set num_words_list=1 5 10                 # Number of videos to process
-set split_list=train test                 # Data splits to evaluate
 ```
 
 3. **Run the batch file**:
-```bash
+```cmd
 .\run_code.bat
+```
+
+#### macOS/Linux (run_code.sh)
+1. **Open `run_code.sh`** in any text editor
+2. **Configure your experiment** by modifying these lists:
+
+```bash
+seed_list=(1 42 123)                      # Multiple seeds for robust results
+method_list=(c3d c3d_pretrained cnn_lstm cnn_lstm_pretrained mhi_baseline mhi_fusion mhi_attention mediapipe mediapipe_transformer mediapipe_lstm)
+num_words_list=(1 5 10)                   # Number of videos to process
+```
+
+3. **Make executable and run**:
+```bash
+chmod +x run_code.sh
+./run_code.sh
 ```
 
 ### Example Configurations
 
 **Test all methods on 1 video:**
 ```batch
-set method_list=attentionlite_mhi c3d cnn_lstm zero_shot mediapipe_transformer mediapipe_lstm
+set method_list=c3d c3d_pretrained cnn_lstm cnn_lstm_pretrained mhi_baseline mhi_fusion mhi_attention mediapipe mediapipe_transformer mediapipe_lstm
 set num_words_list=1
-set split_list=train test
 set seed_list=1
 ```
 
 **Focus on specific methods with multiple scales:**
 ```batch
-set method_list=c3d zero_shot
+set method_list=c3d c3d_pretrained cnn_lstm cnn_lstm_pretrained
 set num_words_list=1 5 10 20
-set split_list=test
 set seed_list=1 42 123
+```
+
+**Test pretrained vs non-pretrained variants:**
+```batch
+set method_list=c3d c3d_pretrained cnn_lstm cnn_lstm_pretrained
+set num_words_list=5
+set seed_list=1 42
 ```
 
 ### Manual Execution

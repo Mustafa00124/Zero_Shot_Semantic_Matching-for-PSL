@@ -22,18 +22,17 @@ PROJECT_ID = os.getenv("PROJECT_ID")
 LOCATION = os.getenv("LOCATION")
 FINETUNED_MODEL_NAME = os.getenv("FINETUNED_MODEL_NAME")
 
-# Local video directories
-TRAIN_VIDEO_DIR = "data/Words_train"
-TEST_VIDEO_DIR = "data/Words_test"
+GCS_PREFIX_TRAIN = os.getenv("GCS_PREFIX_TRAIN")
+GCS_PREFIX_TEST = os.getenv("GCS_PREFIX_TEST")
 
 # Output files
 RESULTS_DIR = "results"
 OUTPUT_JSON = "finetuned_gemini_results.json"
-PREDICTIONS_TSV = "finetuned_gemini_predictions.tsv"
+PREDICTIONS_TSV = "finetuned_gemini_results.tsv"
+OUTPUTS_DIR = "outputs"
 
-# Method and seed for reproducibility
+# Method for reproducibility
 METHOD = "finetuned_gemini_baseline"
-SEED = 42
 
 # -------------------------
 # Helper Functions
@@ -45,7 +44,7 @@ def get_video_files(directory: str) -> List[str]:
         print(f"[WARNING] Directory {directory} not found")
         return []
     
-    video_files = [f.stem for f in video_dir.glob("*.mov")]
+    video_files = [f.stem for f in video_dir.glob("*.MOV")]
     return sorted(video_files)
 
 def load_train_descriptions(path: str) -> Dict[str, str]:
@@ -133,8 +132,9 @@ def save_results(train_accuracy: float, test_accuracy: float,
     
     print(f"Results saved to: {output_path}")
     
-    # Also save detailed predictions to TSV
-    tsv_path = os.path.join(RESULTS_DIR, PREDICTIONS_TSV)
+    # Also save detailed predictions to TSV in outputs folder
+    os.makedirs(OUTPUTS_DIR, exist_ok=True)
+    tsv_path = os.path.join(OUTPUTS_DIR, PREDICTIONS_TSV)
     with open(tsv_path, 'w', encoding='utf-8') as f:
         f.write("Dataset\tActualWord\tPredictedWord\n")
         
@@ -171,7 +171,7 @@ Confidence: <high/medium/low>
 # -------------------------
 # Main Processing Functions
 # -------------------------
-def process_videos(video_dir: str, vocabulary: List[str], client, model_name: str) -> List[Tuple[str, str]]:
+def process_videos(video_dir: str, vocabulary: List[str], client, model_name: str, seed: int, is_test: bool = False) -> List[Tuple[str, str]]:
     """Process videos in directory and return predictions"""
     predictions = []
     video_files = get_video_files(video_dir)
@@ -185,18 +185,19 @@ def process_videos(video_dir: str, vocabulary: List[str], client, model_name: st
     for i, word in enumerate(video_files, 1):
         print(f"\n[{i}/{len(video_files)}] Processing: {word}")
         
-        video_path = os.path.join(video_dir, f"{word}.mov")
-        if not os.path.exists(video_path):
-            print(f"[WARNING] Video file not found: {video_path}")
-            continue
-        
         # Create prompt with vocabulary
         prompt = PROMPT_TEMPLATE.format(vocabulary=", ".join(f'"{w}"' for w in vocabulary))
         
         try:
-            # For local files, we need to upload to GCS or use a different approach
-            # For now, we'll use the local file path - you may need to adjust this
-            # based on how your finetuned model expects input
+            # Use environment variables for GCS URIs
+            if is_test:
+                # For test videos, use the test GCS prefix from env
+                gcs_uri = f"{GCS_PREFIX_TEST}{word}.MOV"
+            else:
+                # For train videos, use the train GCS prefix from env
+                gcs_uri = f"{GCS_PREFIX_TRAIN}{word}.MOV"
+            
+            print(f"  Using GCS URI: {gcs_uri}")
             
             contents = [
                 types.Content(
@@ -204,8 +205,8 @@ def process_videos(video_dir: str, vocabulary: List[str], client, model_name: st
                     parts=[
                         types.Part(
                             file_data=types.FileData(
-                                file_uri=f"file://{os.path.abspath(video_path)}",
-                                mime_type="video/mov",
+                                file_uri=gcs_uri,
+                                mime_type="video/MOV",
                             )
                         ),
                         types.Part(text=prompt),
@@ -216,7 +217,7 @@ def process_videos(video_dir: str, vocabulary: List[str], client, model_name: st
             config = types.GenerateContentConfig(
                 temperature=0.0,  # deterministic
                 top_p=1,
-                seed=SEED,
+                seed=seed,  # Use the seed argument passed to the function
                 max_output_tokens=1000,
                 safety_settings=[
                     types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH", threshold="OFF"),
@@ -271,16 +272,19 @@ def run_finetuned_gemini(num_words=1, seed: int = 42, out_dir: str = "results"):
         print(f"[ERROR] Failed to initialize Gemini client: {str(e)}")
         return
     
-    # Get vocabulary from training videos
-    train_vocabulary = get_video_files(TRAIN_VIDEO_DIR)
-    test_vocabulary = get_video_files(TEST_VIDEO_DIR)
+    # Get vocabulary from local directories (for file listing)
+    local_train_dir = "data/Words_train"
+    local_test_dir = "data/Words_test"
+    
+    train_vocabulary = get_video_files(local_train_dir)
+    test_vocabulary = get_video_files(local_test_dir)
     
     if not train_vocabulary:
-        print("[ERROR] No training videos found. Please check the TRAIN_VIDEO_DIR path.")
+        print(f"[ERROR] No training videos found. Please check the {local_train_dir} path.")
         return
     
     if not test_vocabulary:
-        print("[ERROR] No test videos found. Please check the TEST_VIDEO_DIR path.")
+        print(f"[ERROR] No test videos found. Please check the {local_test_dir} path.")
         return
     
     # Select subset by seed
@@ -292,11 +296,11 @@ def run_finetuned_gemini(num_words=1, seed: int = 42, out_dir: str = "results"):
     
     # Process training videos
     print(f"\n{'='*20} Processing Training Videos {'='*20}")
-    train_predictions = process_videos(TRAIN_VIDEO_DIR, subset_vocabulary, client, FINETUNED_MODEL_NAME)
+    train_predictions = process_videos(local_train_dir, subset_vocabulary, client, FINETUNED_MODEL_NAME, seed, is_test=False)
     
     # Process test videos
     print(f"\n{'='*20} Processing Test Videos {'='*20}")
-    test_predictions = process_videos(TEST_VIDEO_DIR, subset_vocabulary, client, FINETUNED_MODEL_NAME)
+    test_predictions = process_videos(local_test_dir, subset_vocabulary, client, FINETUNED_MODEL_NAME, seed, is_test=True)
     
     # Calculate accuracies
     train_accuracy = calculate_accuracy(train_predictions)

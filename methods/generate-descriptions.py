@@ -2,23 +2,34 @@ from google import genai
 from google.genai import types
 import os
 import threading
-import keyboard  # pip install keyboard
 import time
+import signal
 from dotenv import load_dotenv
 
+# Load environment variables
 load_dotenv()
 
 PROJECT_ID = os.getenv("PROJECT_ID")
 LOCATION = os.getenv("LOCATION")
 FINETUNED_MODEL_NAME = os.getenv("FINETUNED_MODEL_NAME")
 
+# Ensure GOOGLE_APPLICATION_CREDENTIALS is set
+if not os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
+    default_adc = os.path.expanduser("~/.config/gcloud/application_default_credentials.json")
+    if os.path.exists(default_adc):
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = default_adc
+        print(f"Using ADC file: {default_adc}")
+        print(f"GOOGLE_APPLICATION_CREDENTIALS: {os.getenv('GOOGLE_APPLICATION_CREDENTIALS')}")
+    else:
+        raise RuntimeError("No GOOGLE_APPLICATION_CREDENTIALS set and no ADC file found.")
+
 video_dir_train = "data/Words_train"
-# video_dir_train = r"E:\estudy\PSL finetuning\Words"
 video_dir_test = "data/Words_test"
 gcs_prefix_train = "gs://psl-train-clipped/train/"
-# gcs_prefix_train = "gs://psl-video-captions/Words/"
 gcs_prefix_test = "gs://psl-test/"
-SAVE_FILENAME = "descriptions_train-clipped-32.txt"
+
+os.makedirs("outputs", exist_ok=True)
+SAVE_FILENAME = "outputs/descriptions_train-clipped-32.txt"
 
 PROMPT_TEMPLATE = """
 You are an expert PSL video analyst.
@@ -48,7 +59,7 @@ Examples:
 Counterexample to avoid (hallucination): do not mention a circular motion unless it is clearly seen in the clip you watched.
 """
 
-# First, collect all possible words (labels) from train
+# Collect all possible words (labels) from train
 all_words = [
     os.path.splitext(f)[0]
     for f in os.listdir(video_dir_train)
@@ -61,22 +72,17 @@ def get_test_filename(word):
 
 stop_flag = False
 
-def listen_for_stop():
-    global stop_flag
-    print("Press 'q' to stop the script.")
-    keyboard.wait('q')
-    stop_flag = True
-
 def save_description(word, split, description):
-    # filename = "descriptions_train.txt" if split == "train" else "descriptions_test.txt"
     filename = SAVE_FILENAME
     with open(filename, "a", encoding="utf-8") as f:
         f.write(f"{word}: {description.strip()}\n")
 
 def generate_for_all_videos():
+    global stop_flag
+
     # Clear the file at the start of each run
     with open(SAVE_FILENAME, "w", encoding="utf-8") as f:
-        pass  # This will truncate the file to zero length
+        pass
 
     client = genai.Client(
         vertexai=True,
@@ -85,38 +91,38 @@ def generate_for_all_videos():
     )
 
     model = "publishers/google/models/gemini-2.5-pro"
-    
-    # all_words = ["Group"]
+
     for word in sorted(all_words):
         if stop_flag:
             print("Stopping as requested by user.")
             break
-        # Train video
+
         train_filename = word + ".MOV"
-        train_gcs_uri = f"{gcs_prefix_train}{train_filename}"
+        train_path = os.path.join(video_dir_train, train_filename)
 
-        # Test video (capitalize first letter)
         test_filename = get_test_filename(word)
-        test_gcs_uri = f"{gcs_prefix_test}{test_filename}"
+        test_path = os.path.join(video_dir_test, test_filename)
 
-        # for split, gcs_uri in [("train", train_gcs_uri), ("test", test_gcs_uri)]:
-        for split, gcs_uri in [("train", train_gcs_uri)]:
+        for split, video_path in [("train", train_path)]:
             if stop_flag:
                 print("Stopping as requested by user.")
                 break
+            
+            # Use GCS URI like zero_shot_semantic_matching.py does
+            train_gcs_uri = f"{gcs_prefix_train}{train_filename}"
+            print(f"Using GCS URI: {train_gcs_uri}")
+            
             contents = [
                 types.Content(
                     role="user",
                     parts=[
                         types.Part(
                             file_data=types.FileData(
-                                file_uri=gcs_uri,
+                                file_uri=train_gcs_uri,
                                 mime_type="video/MOV"
                             )
                         ),
-                        types.Part(
-                            text=PROMPT_TEMPLATE
-                        ),
+                        types.Part(text=PROMPT_TEMPLATE),
                     ]
                 )
             ]
@@ -127,27 +133,13 @@ def generate_for_all_videos():
                 seed=0,
                 max_output_tokens=12000,
                 safety_settings=[
-                    types.SafetySetting(
-                        category="HARM_CATEGORY_HATE_SPEECH",
-                        threshold="OFF"
-                    ),
-                    types.SafetySetting(
-                        category="HARM_CATEGORY_DANGEROUS_CONTENT",
-                        threshold="OFF"
-                    ),
-                    types.SafetySetting(
-                        category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                        threshold="OFF"
-                    ),
-                    types.SafetySetting(
-                        category="HARM_CATEGORY_HARASSMENT",
-                        threshold="OFF"
-                    )
+                    types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH", threshold="OFF"),
+                    types.SafetySetting(category="HARM_CATEGORY_DANGEROUS_CONTENT", threshold="OFF"),
+                    types.SafetySetting(category="HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold="OFF"),
+                    types.SafetySetting(category="HARM_CATEGORY_HARASSMENT", threshold="OFF"),
                 ],
-                thinking_config=types.ThinkingConfig(
-                    thinking_budget=-1,
-                ),
-                media_resolution="MEDIA_RESOLUTION_LOW"
+                thinking_config=types.ThinkingConfig(thinking_budget=-1),
+                media_resolution="MEDIA_RESOLUTION_LOW",
             )
 
             output = ""
@@ -167,7 +159,12 @@ def generate_for_all_videos():
             except Exception as e:
                 print(f"Error processing {word} [{split}]: {e}")
 
+def handle_sigint(sig, frame):
+    global stop_flag
+    stop_flag = True
+    print("\nCtrl-C pressed. Stopping gracefully...")
+
 if __name__ == "__main__":
-    listener = threading.Thread(target=listen_for_stop, daemon=True)
-    listener.start()
+    signal.signal(signal.SIGINT, handle_sigint)
+    print("Press Ctrl-C to stop the script.")
     generate_for_all_videos()
